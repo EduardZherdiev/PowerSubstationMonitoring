@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1560</width>
+    <height>980</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Power Substation Monitoring</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
+    <property name="spacing">
+     <number>12</number>
+    </property>
+    <property name="leftMargin">
+     <number>12</number>
+    </property>
+    <property name="topMargin">
+     <number>12</number>
+    </property>
+    <property name="rightMargin">
+     <number>12</number>
+    </property>
+    <property name="bottomMargin">
+     <number>12</number>
+    </property>
+    <item>
+     <widget class="QSplitter" name="topSplitter">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
+      <widget class="QTreeView" name="equipmentTreeView">
+       <property name="minimumSize">
+        <size>
+         <width>300</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>420</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="alternatingRowColors">
+        <bool>true</bool>
+       </property>
+       <property name="indentation">
+        <number>18</number>
+       </property>
+      </widget>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="schema">
+        <attribute name="title">
+         <string>Schema</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="SubstationDiagramView" name="graphicsView"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="monitoring">
+        <attribute name="title">
+         <string>Monitoring</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QPushButton" name="pushButton">
+           <property name="text">
+            <string>PushButton</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="parameterPanel">
+       <property name="minimumSize">
+        <size>
+         <width>320</width>
+         <height>0</height>
+        </size>
+       </property>
+       <layout class="QVBoxLayout" name="parameterLayout">
+        <property name="spacing">
+         <number>8</number>
+        </property>
+        <property name="leftMargin">
+         <number>10</number>
+        </property>
+        <property name="topMargin">
+         <number>10</number>
+        </property>
+        <property name="rightMargin">
+         <number>10</number>
+        </property>
+        <property name="bottomMargin">
+         <number>10</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="parametersTitle">
+          <property name="text">
+           <string>Parameters</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QFrame" name="infoFrame">
+          <property name="frameShape">
+           <enum>QFrame::Shape::StyledPanel</enum>
+          </property>
+          <layout class="QFormLayout" name="infoFormLayout">
+           <property name="labelAlignment">
+            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+           </property>
+           <item row="0" column="0">
+            <widget class="QLabel" name="nameLabelCaption">
+             <property name="text">
+              <string>Name</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLabel" name="nameValueLabel">
+             <property name="text">
+              <string>-</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="typeLabelCaption">
+             <property name="text">
+              <string>Type</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="typeValueLabel">
+             <property name="text">
+              <string>-</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="statusLabelCaption">
+             <property name="text">
+              <string>Status</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLabel" name="statusValueLabel">
+             <property name="text">
+              <string>-</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="locationLabelCaption">
+             <property name="text">
+              <string>Location</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLabel" name="locationValueLabel">
+             <property name="text">
+              <string>-</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="descriptionLabelCaption">
+             <property name="text">
+              <string>Description</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLabel" name="descriptionValueLabel">
+             <property name="text">
+              <string>-</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="extraParamsLabel">
+          <property name="text">
+           <string>Technical parameters</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="parametersTable">
+          <property name="editTriggers">
+           <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+          </property>
+          <property name="columnCount">
+           <number>2</number>
+          </property>
+          <column>
+           <property name="text">
+            <string>Parameter</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Value</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QTableWidget" name="eventLogTable">
+      <property name="alternatingRowColors">
+       <bool>true</bool>
+      </property>
+      <property name="rowCount">
+       <number>0</number>
+      </property>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
+      </attribute>
+      <attribute name="verticalHeaderVisible">
+       <bool>false</bool>
+      </attribute>
+      <column>
+       <property name="text">
+        <string>Time</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Level</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Source</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Message</string>
+       </property>
+      </column>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1560</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionSave"/>
+    <addaction name="actionSave_as"/>
+    <addaction name="actionLoad"/>
+   </widget>
+   <widget class="QMenu" name="menuReport">
+    <property name="title">
+     <string>Report</string>
+    </property>
+    <addaction name="actionGenerate_report"/>
+    <addaction name="actionExport_PDF"/>
+    <addaction name="actionExport_CSV"/>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuReport"/>
+   <addaction name="menuSettings"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionSave">
+   <property name="text">
+    <string>Save</string>
+   </property>
+  </action>
+  <action name="actionSave_as">
+   <property name="text">
+    <string>Save as</string>
+   </property>
+  </action>
+  <action name="actionLoad">
+   <property name="text">
+    <string>Load</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::AboutRole</enum>
+   </property>
+  </action>
+  <action name="actionGenerate_report">
+   <property name="text">
+    <string>Generate report</string>
+   </property>
+  </action>
+  <action name="actionExport_PDF">
+   <property name="text">
+    <string>Export PDF</string>
+   </property>
+  </action>
+  <action name="actionExport_CSV">
+   <property name="text">
+    <string>Export CSV</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SubstationDiagramView</class>
+   <extends>QGraphicsView</extends>
+   <header>substationdiagramview.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
