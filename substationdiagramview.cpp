@@ -75,6 +75,20 @@ void SubstationDiagramView::selectEquipment(const QString &equipmentKey)
     }
 }
 
+void SubstationDiagramView::refreshTheme()
+{
+    if (!m_scene) {
+        return;
+    }
+
+    m_scene->setBackgroundBrush(QBrush(DiagramTheme::color(DiagramTheme::ColorRole::Background)));
+    viewport()->update();
+    if (scene()) {
+        scene()->update();
+    }
+    update();
+}
+
 DiagramNodeItem *SubstationDiagramView::addNode(const SubstationLayout::NodeSpec &nodeSpec)
 {
     auto *node = new DiagramNodeItem(nodeSpec.id, nodeSpec.shape, nodeSpec.title, nodeSpec.size);

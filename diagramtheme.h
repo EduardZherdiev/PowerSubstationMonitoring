@@ -3,6 +3,8 @@
 
 #include <QColor>
 
+#include "appsettings.h"
+
 namespace DiagramTheme {
 enum class ColorRole {
     Background,
@@ -18,6 +20,7 @@ enum class ColorRole {
     PanelText
 };
 
+void setTheme(AppSettings::ThemeMode theme);
 QColor color(ColorRole role);
 }
 

@@ -30,6 +30,7 @@ public:
     void setLayout(const SubstationLayout::Layout &layout);
     void fitToContent();
     void selectEquipment(const QString &equipmentKey);
+    void refreshTheme();
 
 signals:
     void equipmentActivated(const QString &equipmentKey);

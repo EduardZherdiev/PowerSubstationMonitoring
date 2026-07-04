@@ -8,6 +8,7 @@
 #include "substationlayout.h"
 #include "aboutdialog.h"
 #include "eventlogger.h"
+#include "settingsdialog.h"
 
 #include <QHeaderView>
 #include <QDateTime>
@@ -110,6 +111,11 @@ void MainWindow::connectInteractions()
         AboutDialog aboutDialog(this);
         aboutDialog.exec();
     });
+    connect(ui->actionSettings, &QAction::triggered, this,[this]() {
+        SettingsDialog settingsDialog(this);
+        settingsDialog.exec();
+    });
+
 }
 
 void MainWindow::loadSubstationLayout()
