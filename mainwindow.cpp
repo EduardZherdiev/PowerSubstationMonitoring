@@ -4,6 +4,7 @@
 #include "equipment.h"
 #include "equipmenttreemodel.h"
 #include "diagramtheme.h"
+#include "powerflowcalculator.h"
 #include "substationdiagramview.h"
 #include "substationlayout.h"
 #include "aboutdialog.h"
@@ -141,6 +142,7 @@ void MainWindow::loadSubstationLayout()
         return;
     }
 
+    PowerFlowCalculator::annotateLayout(&layout);
     equipmentModel->setLayout(layout);
     diagramView->setLayout(layout);
 }

@@ -11,8 +11,8 @@
       "location": "Line Infeed",
       "description": "Incoming line",
       "parameters": {
-        "Voltage": "110 kV",
-        "Current": "218 A"
+        "Voltage": "330 kV",
+        "Current": "540 A"
       }
     },
     {
@@ -40,9 +40,7 @@
       "status": "Energized",
       "location": "Main Bus",
       "description": "Main bus section",
-      "parameters": {
-        "Voltage": "330 kV"
-      }
+      "parameters": {}
     },
     {
       "id": "TR-1",
@@ -55,8 +53,13 @@
       "location": "Transformer Bay",
       "description": "Step-down transformer",
       "parameters": {
+        "Primary Voltage": "330 kV",
+        "Secondary Voltage": "10 kV",
         "MVA": "63",
-        "Load": "72%"
+        "Load": "72%",
+        "Temperature": "68 C",
+        "Temperature Sensor": "TS-TR-1",
+        "Rated Temperature": "90 C"
       }
     },
     {
@@ -69,9 +72,7 @@
       "status": "Energized",
       "location": "Reserve Bus",
       "description": "Reserve bus section",
-      "parameters": {
-        "Voltage": "330 kV"
-      }
+      "parameters": {}
     },
     {
       "id": "Line-2",
@@ -83,10 +84,7 @@
       "status": "Ready",
       "location": "Outgoing Line",
       "description": "",
-      "parameters": {
-        "Voltage": "10 kV",
-        "Current": "79 A"
-      }
+      "parameters": {}
     }
   ],
   "connections": [
