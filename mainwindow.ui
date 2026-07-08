@@ -14,7 +14,7 @@
    <string>Power Substation Monitoring</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="5,2">
     <property name="spacing">
      <number>12</number>
     </property>
@@ -60,7 +60,7 @@
       </widget>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="schema">
         <attribute name="title">
@@ -148,24 +148,28 @@
           </layout>
          </item>
          <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>Voltage (kV)</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGraphicsView" name="voltage"/>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_2">
-           <property name="text">
-            <string>Current (A)</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGraphicsView" name="current"/>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Voltage (kV)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGraphicsView" name="voltage"/>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>Current (A)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGraphicsView" name="current"/>
+           </item>
+          </layout>
          </item>
          <item>
           <widget class="QLabel" name="label_3">
