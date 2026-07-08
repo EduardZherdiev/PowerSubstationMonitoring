@@ -2,8 +2,10 @@
 
 #include <QtMath>
 #include <QHash>
+#include <QSet>
 #include <QQueue>
 #include <QRegularExpression>
+#include <QStringList>
 
 namespace {
 
@@ -113,6 +115,92 @@ double parsePercent(const QString &value, bool *ok = nullptr)
     return parsed ? number : 0.0;
 }
 
+double parseTransformerRatioText(const QString &value, bool *ok = nullptr)
+{
+    const QString normalized = normalize(value);
+    const QStringList parts = normalized.split(QLatin1Char(':'), Qt::SkipEmptyParts);
+    if (parts.size() == 2) {
+        bool numeratorOk = false;
+        bool denominatorOk = false;
+        const double numerator = parseFirstNumber(parts.at(0), &numeratorOk);
+        const double denominator = parseFirstNumber(parts.at(1), &denominatorOk);
+        if (numeratorOk && denominatorOk && numerator > 0.0 && denominator > 0.0) {
+            if (ok) {
+                *ok = true;
+            }
+            return numerator / denominator;
+        }
+    }
+
+    bool parsed = false;
+    const double number = parseFirstNumber(value, &parsed);
+    if (ok) {
+        *ok = parsed && number > 0.0;
+    }
+    return parsed ? number : 0.0;
+}
+
+double parseTemperatureC(const QString &value, bool *ok = nullptr)
+{
+    bool parsed = false;
+    const double number = parseFirstNumber(value, &parsed);
+    if (ok) {
+        *ok = parsed;
+    }
+    return parsed ? number : 0.0;
+}
+
+double parseTransformerRatio(const SubstationLayout::NodeSpec &node, bool *ok = nullptr)
+{
+    bool parsed = false;
+    double ratio = 0.0;
+    QMap<QString, QString>::const_iterator it;
+
+    const QStringList ratioKeys = {
+        QStringLiteral("Transformation Ratio"),
+        QStringLiteral("Transformation Coefficient"),
+        QStringLiteral("Transformer Ratio"),
+        QStringLiteral("Turns Ratio"),
+        QStringLiteral("Ratio")
+    };
+    for (const QString &key : ratioKeys) {
+        it = node.parameters.constFind(key);
+        if (it != node.parameters.constEnd()) {
+            ratio = parseTransformerRatioText(it.value(), &parsed);
+            if (parsed && ratio > 0.0) {
+                break;
+            }
+        }
+    }
+
+    if (!parsed || ratio <= 0.0) {
+        double primaryKv = 0.0;
+        double secondaryKv = 0.0;
+        bool primaryOk = false;
+        bool secondaryOk = false;
+
+        it = node.parameters.constFind(QStringLiteral("Primary Voltage"));
+        if (it != node.parameters.constEnd()) {
+            primaryKv = parseVoltageKv(it.value(), &primaryOk);
+        }
+
+        it = node.parameters.constFind(QStringLiteral("Secondary Voltage"));
+        if (it != node.parameters.constEnd()) {
+            secondaryKv = parseVoltageKv(it.value(), &secondaryOk);
+        }
+
+        if (primaryOk && secondaryOk && secondaryKv > 0.0) {
+            ratio = primaryKv / secondaryKv;
+            parsed = ratio > 0.0;
+        }
+    }
+
+    if (ok) {
+        *ok = parsed && ratio > 0.0;
+    }
+    return ratio;
+}
+
 bool isBreakerClosed(const SubstationLayout::NodeSpec &node)
 {
     return normalize(node.status).contains(QStringLiteral("closed"));
@@ -195,37 +283,14 @@ PowerFlowCalculator::NodeState propagateThroughTransformer(const PowerFlowCalcul
     PowerFlowCalculator::NodeState state = incoming;
     state.note = QStringLiteral("Transformer");
 
-    bool secondaryVoltageOk = false;
     bool currentOk = false;
     bool loadOk = false;
+    bool ratioOk = false;
+    const double transformerRatio = parseTransformerRatio(node, &ratioOk);
 
-    const QStringList secondaryVoltageKeys = {
-        QStringLiteral("Secondary Voltage"),
-        QStringLiteral("LV Voltage"),
-        QStringLiteral("Voltage LV"),
-        QStringLiteral("Output Voltage")
-    };
-    for (const QString &key : secondaryVoltageKeys) {
-        const auto it = node.parameters.constFind(key);
-        if (it != node.parameters.constEnd()) {
-            const double parsedVoltage = parseVoltageKv(it.value(), &secondaryVoltageOk);
-            if (secondaryVoltageOk) {
-                state.voltageKv = parsedVoltage;
-                state.hasVoltage = true;
-                break;
-            }
-        }
-    }
-
-    if (!state.hasVoltage) {
-        const auto it = node.parameters.constFind(QStringLiteral("Voltage"));
-        if (it != node.parameters.constEnd()) {
-            const double parsedVoltage = parseVoltageKv(it.value(), &secondaryVoltageOk);
-            if (secondaryVoltageOk) {
-                state.voltageKv = parsedVoltage;
-                state.hasVoltage = true;
-            }
-        }
+    if (ratioOk && transformerRatio > 0.0 && incoming.hasVoltage) {
+        state.voltageKv = incoming.voltageKv / transformerRatio;
+        state.hasVoltage = true;
     }
 
     const auto mvaIt = node.parameters.constFind(QStringLiteral("MVA"));
@@ -245,6 +310,11 @@ PowerFlowCalculator::NodeState propagateThroughTransformer(const PowerFlowCalcul
             state.currentA = (apparentPowerMva * 1'000'000.0) / (qSqrt(3.0) * state.voltageKv * 1000.0);
             state.hasCurrent = true;
         }
+    }
+
+    if (ratioOk && transformerRatio > 0.0 && incoming.hasCurrent) {
+        state.currentA = incoming.currentA * transformerRatio;
+        state.hasCurrent = true;
     }
 
     if (!state.hasCurrent && incoming.hasCurrent) {
@@ -288,7 +358,7 @@ PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &n
             const auto directTemperatureIt = node.parameters.constFind(QStringLiteral("Temperature"));
             if (directTemperatureIt != node.parameters.constEnd()) {
                 bool temperatureOk = false;
-                state.temperatureC = parseCurrentA(directTemperatureIt.value(), &temperatureOk);
+                state.temperatureC = parseTemperatureC(directTemperatureIt.value(), &temperatureOk);
                 state.hasTemperature = temperatureOk;
             }
         }
@@ -307,6 +377,9 @@ void annotateNode(SubstationLayout::NodeSpec *node, const PowerFlowCalculator::N
     if (!node) {
         return;
     }
+
+    bool ratioOk = false;
+    const double ratio = parseTransformerRatio(*node, &ratioOk);
 
     node->parameters.insert(QStringLiteral("Calculated Voltage"), voltageText(state));
     node->parameters.insert(QStringLiteral("Calculated Current"), currentText(state));
@@ -368,11 +441,13 @@ QMap<QString, NodeState> calculate(const SubstationLayout::Layout &layout,
     QString currentId;
     NodeState nextState;
     const SubstationLayout::NodeSpec *childNode;
+    NodeState currentState;
+    QStringList children;
     while (!queue.isEmpty()) {
         currentId = queue.dequeue();
-        const NodeState currentState = states.value(currentId);
+        currentState = states.value(currentId);
 
-        const QStringList children = childrenById.value(currentId);
+        children = childrenById.value(currentId);
         for (const QString &childId : children) {
             if (!nodeById.contains(childId)) {
                 continue;

@@ -53,8 +53,7 @@
       "location": "Transformer Bay",
       "description": "Step-down transformer",
       "parameters": {
-        "Primary Voltage": "330 kV",
-        "Secondary Voltage": "10 kV",
+        "Transformation Ratio": "33:12",
         "MVA": "63",
         "Load": "72%",
         "Temperature": "68 C",
