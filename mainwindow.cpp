@@ -6,6 +6,8 @@
 #include "diagramtheme.h"
 #include "powerflowcalculator.h"
 #include "sensortelemetry.h"
+#include "monitoringchart.h"
+#include "telemetryhistory.h"
 #include "substationdiagramview.h"
 #include "substationlayout.h"
 #include "aboutdialog.h"
@@ -14,11 +16,7 @@
 
 #include <QHeaderView>
 #include <QDateTime>
-#include <QGraphicsLineItem>
 #include <QGraphicsScene>
-#include <QGraphicsTextItem>
-#include <QPainterPath>
-#include <QFont>
 #include <QPalette>
 #include <QItemSelectionModel>
 #include <QList>
@@ -34,8 +32,6 @@
 #include <QTableWidgetItem>
 #include <QDir>
 #include <QRandomGenerator>
-
-#include <algorithm>
 
 namespace {
 
@@ -54,40 +50,6 @@ QString formatC(double value)
     return QStringLiteral("%1 C").arg(QString::number(value, 'f', 1));
 }
 
-void setTextScene(QGraphicsScene *scene,
-                  const QString &title,
-                  const QString &value,
-                  const QString &unit,
-                  const QColor &valueColor,
-                  const QColor &textColor)
-{
-    if (!scene) {
-        return;
-    }
-
-    scene->clear();
-    scene->setSceneRect(0, 0, 320, 180);
-    scene->setBackgroundBrush(DiagramTheme::color(DiagramTheme::ColorRole::PanelBackground));
-
-    QFont titleFont(QStringLiteral("Segoe UI"), 11, QFont::Bold);
-    QFont valueFont(QStringLiteral("Segoe UI"), 26, QFont::Bold);
-    QFont unitFont(QStringLiteral("Segoe UI"), 10);
-
-    QGraphicsTextItem *titleItem = scene->addText(title, titleFont);
-    titleItem->setDefaultTextColor(textColor);
-    titleItem->setPos(12, 10);
-
-    QGraphicsTextItem *valueItem = scene->addText(value, valueFont);
-    valueItem->setDefaultTextColor(valueColor);
-    valueItem->setPos(12, 56);
-
-    QGraphicsTextItem *unitItem = scene->addText(unit, unitFont);
-    unitItem->setDefaultTextColor(textColor);
-    unitItem->setPos(14, 118);
-
-    scene->addLine(12, 148, 308, 148, QPen(textColor, 1, Qt::DashLine));
-}
-
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent)
@@ -99,15 +61,17 @@ MainWindow::MainWindow(QWidget *parent)
     , m_telemetryTimer(new QTimer(this))
     , m_baseLayout(new SubstationLayout::Layout())
     , m_liveLayout(new SubstationLayout::Layout())
-    , m_voltageScene(new QGraphicsScene(this))
-    , m_currentScene(new QGraphicsScene(this))
-    , m_temperatureScene(new QGraphicsScene(this))
+    , m_voltageScene(MonitoringChart::createScene(this))
+    , m_currentScene(MonitoringChart::createScene(this))
+    , m_temperatureScene(MonitoringChart::createScene(this))
     , m_hasLastSnapshot(false)
-    , m_historyLimit(120)
 {
     ui->setupUi(this);
     diagramView = ui->graphicsView;
     setupMonitoringCharts();
+    ui->period->setChecked(true);
+    ui->dateEdit->setEnabled(false);
+    ui->periodComboBox->setCurrentIndex(0);
 
     QPalette windowPalette = palette();
     windowPalette.setColor(QPalette::Window, DiagramTheme::color(DiagramTheme::ColorRole::Background));
@@ -199,22 +163,28 @@ void MainWindow::connectInteractions()
         settingsDialog.exec();
     });
 
-    connect(ui->comboBox, &QComboBox::currentTextChanged, this, [this](const QString &text) {
-        if (text == QStringLiteral("Last hour")) {
-            m_historyLimit = 120;
-        } else if (text == QStringLiteral("Last day")) {
-            m_historyLimit = 240;
-        } else {
-            m_historyLimit = 360;
+    connect(ui->periodComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
+        refreshMonitoringCharts();
+    });
+
+    connect(ui->period, &QRadioButton::toggled, this, [this](bool checked) {
+        if (checked) {
+            ui->dateEdit->setEnabled(false);
+            refreshMonitoringCharts();
         }
+    });
 
-        while (m_voltageHistory.size() > m_historyLimit) m_voltageHistory.removeFirst();
-        while (m_currentHistory.size() > m_historyLimit) m_currentHistory.removeFirst();
-        while (m_temperatureHistory.size() > m_historyLimit) m_temperatureHistory.removeFirst();
+    connect(ui->day, &QRadioButton::toggled, this, [this](bool checked) {
+        ui->dateEdit->setEnabled(checked);
+        if (checked) {
+            refreshMonitoringCharts();
+        }
+    });
 
-        redrawChart(m_voltageScene, m_voltageHistory, QStringLiteral("Voltage"), QStringLiteral("kV"), QColor(0x56, 0xC2, 0xFF), DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
-        redrawChart(m_currentScene, m_currentHistory, QStringLiteral("Current"), QStringLiteral("A"), QColor(0xFF, 0xB8, 0x6B), DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
-        redrawChart(m_temperatureScene, m_temperatureHistory, QStringLiteral("Temperature"), QStringLiteral("C"), QColor(0xD9, 0x2D, 0x20), DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
+    connect(ui->dateEdit, &QDateEdit::dateChanged, this, [this](const QDate &) {
+        if (ui->day->isChecked()) {
+            refreshMonitoringCharts();
+        }
     });
 
 }
@@ -256,6 +226,9 @@ void MainWindow::setupMonitoringCharts()
     ui->voltage->setRenderHint(QPainter::Antialiasing, true);
     ui->current->setRenderHint(QPainter::Antialiasing, true);
     ui->tempreture->setRenderHint(QPainter::Antialiasing, true);
+    ui->voltage->setAlignment(Qt::AlignCenter);
+    ui->current->setAlignment(Qt::AlignCenter);
+    ui->tempreture->setAlignment(Qt::AlignCenter);
 }
 
 void MainWindow::startTelemetryMonitoring()
@@ -263,6 +236,61 @@ void MainWindow::startTelemetryMonitoring()
     connect(m_telemetryTimer, &QTimer::timeout, this, &MainWindow::refreshFromTelemetry);
     m_telemetryTimer->start(1000);
     refreshFromTelemetry();
+}
+
+int MainWindow::selectedWindowSeconds() const
+{
+    if (ui->day && ui->day->isChecked()) {
+        return 24 * 3600;
+    }
+
+    if (!ui->periodComboBox) {
+        return 60;
+    }
+
+    const QString text = ui->periodComboBox->currentText();
+    if (text == QStringLiteral("Last minute")) {
+        return 60;
+    }
+    if (text == QStringLiteral("Last hour")) {
+        return 3600;
+    }
+    return 24 * 3600;
+}
+
+QDateTime MainWindow::selectedEndTime() const
+{
+    if (ui->day && ui->day->isChecked()) {
+        return QDateTime(ui->dateEdit->date(), QTime(23, 59, 59));
+    }
+
+    return QDateTime::currentDateTime();
+}
+
+void MainWindow::emitTemperatureAlerts(const SensorSnapshot &snapshot)
+{
+    constexpr double warningThreshold = 75.0;
+    constexpr double criticalThreshold = 85.0;
+
+    if (!m_hasLastSnapshot) {
+        if (snapshot.transformerTemperatureC >= criticalThreshold) {
+            logCritical(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature critical: %1").arg(formatC(snapshot.transformerTemperatureC)));
+        } else if (snapshot.transformerTemperatureC >= warningThreshold) {
+            logWarning(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature warning: %1").arg(formatC(snapshot.transformerTemperatureC)));
+        }
+        return;
+    }
+
+    const double previous = m_lastSnapshot.transformerTemperatureC;
+    const double current = snapshot.transformerTemperatureC;
+
+    if (previous < warningThreshold && current >= warningThreshold && current < criticalThreshold) {
+        logWarning(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature warning: %1").arg(formatC(current)));
+    }
+
+    if (previous < criticalThreshold && current >= criticalThreshold) {
+        logCritical(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature critical: %1").arg(formatC(current)));
+    }
 }
 
 void MainWindow::refreshFromTelemetry()
@@ -286,6 +314,8 @@ void MainWindow::refreshFromTelemetry()
         }
     }
 
+    emitTemperatureAlerts(snapshot);
+
     *m_liveLayout = *m_baseLayout;
     applySnapshotToLayout(m_liveLayout, snapshot);
     PowerFlowCalculator::annotateLayout(m_liveLayout, snapshot.temperatureBySensor);
@@ -297,13 +327,13 @@ void MainWindow::refreshFromTelemetry()
     }
     restoreSelection();
 
-    updateMonitoringCharts(snapshot);
-
     if (!snapshot.notes.isEmpty()) {
         for (const QString &note : snapshot.notes) {
             logInfo(QStringLiteral("Telemetry"), note);
         }
     }
+
+    refreshMonitoringCharts();
 
     statusBar()->showMessage(QStringLiteral("Live: %1 | %2 | %3")
                                  .arg(formatKv(snapshot.sourceVoltageKv),
@@ -312,6 +342,34 @@ void MainWindow::refreshFromTelemetry()
                              1500);
     m_lastSnapshot = snapshot;
     m_hasLastSnapshot = true;
+}
+
+void MainWindow::refreshMonitoringCharts()
+{
+    const int windowSeconds = selectedWindowSeconds();
+    const QDateTime endTime = selectedEndTime();
+
+    MonitoringChart::render(m_voltageScene,
+                            TelemetryHistory::generateSeries(TelemetryHistory::SeriesKind::Voltage, endTime, windowSeconds),
+                            QStringLiteral("Voltage"),
+                            QStringLiteral("kV"),
+                            QColor(0x56, 0xC2, 0xFF),
+                            DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
+                            windowSeconds);
+    MonitoringChart::render(m_currentScene,
+                            TelemetryHistory::generateSeries(TelemetryHistory::SeriesKind::Current, endTime, windowSeconds),
+                            QStringLiteral("Current"),
+                            QStringLiteral("A"),
+                            QColor(0xFF, 0xB8, 0x6B),
+                            DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
+                            windowSeconds);
+    MonitoringChart::render(m_temperatureScene,
+                            TelemetryHistory::generateSeries(TelemetryHistory::SeriesKind::Temperature, endTime, windowSeconds),
+                            QStringLiteral("Temperature"),
+                            QStringLiteral("C"),
+                            QColor(0xD9, 0x2D, 0x20),
+                            DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
+                            windowSeconds);
 }
 
 void MainWindow::applySnapshotToLayout(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot)
@@ -332,87 +390,6 @@ void MainWindow::applySnapshotToLayout(SubstationLayout::Layout *layout, const S
             node.parameters[QStringLiteral("Load")] = QStringLiteral("%1%").arg(QString::number(snapshot.transformerLoadPercent, 'f', 1));
         }
     }
-}
-
-void MainWindow::updateMonitoringCharts(const SensorSnapshot &snapshot)
-{
-    m_voltageHistory.append(snapshot.sourceVoltageKv);
-    m_currentHistory.append(snapshot.sourceCurrentA);
-    m_temperatureHistory.append(snapshot.transformerTemperatureC);
-
-    while (m_voltageHistory.size() > m_historyLimit) m_voltageHistory.removeFirst();
-    while (m_currentHistory.size() > m_historyLimit) m_currentHistory.removeFirst();
-    while (m_temperatureHistory.size() > m_historyLimit) m_temperatureHistory.removeFirst();
-
-    redrawChart(m_voltageScene, m_voltageHistory, QStringLiteral("Voltage"), QStringLiteral("kV"), QColor(0x56, 0xC2, 0xFF), DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
-    redrawChart(m_currentScene, m_currentHistory, QStringLiteral("Current"), QStringLiteral("A"), QColor(0xFF, 0xB8, 0x6B), DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
-    redrawChart(m_temperatureScene, m_temperatureHistory, QStringLiteral("Temperature"), QStringLiteral("C"), QColor(0xD9, 0x2D, 0x20), DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
-}
-
-void MainWindow::redrawChart(QGraphicsScene *scene,
-                             const QVector<double> &history,
-                             const QString &title,
-                             const QString &unit,
-                             const QColor &lineColor,
-                             const QColor &textColor)
-{
-    if (!scene) {
-        return;
-    }
-
-    scene->clear();
-    scene->setSceneRect(0, 0, 320, 180);
-    scene->setBackgroundBrush(DiagramTheme::color(DiagramTheme::ColorRole::PanelBackground));
-
-    QFont titleFont(QStringLiteral("Segoe UI"), 10, QFont::Bold);
-    QFont labelFont(QStringLiteral("Segoe UI"), 9);
-    QGraphicsTextItem *titleItem = scene->addText(title, titleFont);
-    titleItem->setDefaultTextColor(textColor);
-    titleItem->setPos(10, 6);
-
-    if (history.isEmpty()) {
-        QGraphicsTextItem *emptyItem = scene->addText(QStringLiteral("Waiting for telemetry..."), labelFont);
-        emptyItem->setDefaultTextColor(textColor);
-        emptyItem->setPos(10, 72);
-        return;
-    }
-
-    const double minValue = *std::min_element(history.constBegin(), history.constEnd());
-    const double maxValue = *std::max_element(history.constBegin(), history.constEnd());
-    const double range = qMax(0.1, maxValue - minValue);
-    const QRectF plotRect(16, 34, 288, 118);
-
-    scene->addRect(plotRect, QPen(textColor, 1), QBrush(Qt::NoBrush));
-
-    for (int i = 1; i < 4; ++i) {
-        const qreal y = plotRect.top() + plotRect.height() * i / 4.0;
-        scene->addLine(plotRect.left(), y, plotRect.right(), y, QPen(textColor, 0.5, Qt::DashLine));
-    }
-
-    QPainterPath path;
-    const qreal stepX = history.size() > 1 ? plotRect.width() / (history.size() - 1) : plotRect.width();
-    for (int i = 0; i < history.size(); ++i) {
-        const double normalized = (history.at(i) - minValue) / range;
-        const qreal x = plotRect.left() + i * stepX;
-        const qreal y = plotRect.bottom() - normalized * plotRect.height();
-        if (i == 0) {
-            path.moveTo(x, y);
-        } else {
-            path.lineTo(x, y);
-        }
-    }
-
-    scene->addPath(path, QPen(lineColor, 2.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-
-    const double latest = history.constLast();
-    const QString valueText = QStringLiteral("%1 %2  |  min %3  max %4")
-                                  .arg(QString::number(latest, 'f', 1),
-                                       unit,
-                                       QString::number(minValue, 'f', 1),
-                                       QString::number(maxValue, 'f', 1));
-    QGraphicsTextItem *valueItem = scene->addText(valueText, labelFont);
-    valueItem->setDefaultTextColor(textColor);
-    valueItem->setPos(10, 154);
 }
 
 void MainWindow::rememberCurrentSelection(const QModelIndex &index)

@@ -1,10 +1,11 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QDateTime>
 #include <QMainWindow>
-#include <QVector>
 
 #include "sensortelemetry.h"
+#include "telemetryhistory.h"
 
 class QResizeEvent;
 class Equipment;
@@ -45,19 +46,16 @@ private:
     void startTelemetryMonitoring();
     void refreshFromTelemetry();
     void setupMonitoringCharts();
-    void updateMonitoringCharts(const SensorSnapshot &snapshot);
-    void redrawChart(QGraphicsScene *scene,
-                     const QVector<double> &history,
-                     const QString &title,
-                     const QString &unit,
-                     const QColor &lineColor,
-                     const QColor &textColor);
+    void refreshMonitoringCharts();
     void rememberCurrentSelection(const QModelIndex &index);
     void restoreSelection();
     void displayEquipment(Equipment *equipment, bool fromUserAction);
     void appendEvent(EventLevel level, const QString &source, const QString &message);
     Equipment *equipmentFromTreeIndex(const QModelIndex &index) const;
     Equipment *findEquipmentByName(const QString &name) const;
+    int selectedWindowSeconds() const;
+    QDateTime selectedEndTime() const;
+    void emitTemperatureAlerts(const SensorSnapshot &snapshot);
 
     static void applySnapshotToLayout(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot);
 
@@ -71,12 +69,8 @@ private:
     QGraphicsScene *m_voltageScene;
     QGraphicsScene *m_currentScene;
     QGraphicsScene *m_temperatureScene;
-    QVector<double> m_voltageHistory;
-    QVector<double> m_currentHistory;
-    QVector<double> m_temperatureHistory;
     QString m_selectedEquipmentName;
     SensorSnapshot m_lastSnapshot;
     bool m_hasLastSnapshot;
-    int m_historyLimit;
 };
 #endif // MAINWINDOW_H

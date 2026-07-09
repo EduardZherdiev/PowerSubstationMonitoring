@@ -32,13 +32,8 @@ SensorSnapshot SensorTelemetrySimulator::nextSnapshot()
     snapshot.sourceCurrentA = 540.0 + smoothWave(m_phase * 0.63 + 0.4, 18.0) + boundedNoise(4.0);
     snapshot.transformerLoadPercent = 72.0 + smoothWave(m_phase * 0.30, 5.5) + boundedNoise(1.2);
     snapshot.transformerTemperatureC = 68.0 + smoothWave(m_phase * 0.27 + 1.0, 4.0) + boundedNoise(0.7);
-
-    if (QRandomGenerator::global()->bounded(100) == 0) {
-        m_breakerClosed = !m_breakerClosed;
-        snapshot.notes.append(m_breakerClosed ? QStringLiteral("CB-1 closed") : QStringLiteral("CB-1 opened"));
-    }
-
-    snapshot.breakerClosed = m_breakerClosed;
+    m_breakerClosed = true;
+    snapshot.breakerClosed = true;
     snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), snapshot.transformerTemperatureC);
 
     if (snapshot.sourceVoltageKv < 320.0) {
