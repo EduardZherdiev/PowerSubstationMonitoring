@@ -60,7 +60,7 @@
       </widget>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="schema">
         <attribute name="title">
@@ -360,6 +360,31 @@
            <string>Technical parameters</string>
           </property>
          </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="breakerControlLayout">
+          <item>
+           <widget class="QLabel" name="breakerControlLabel">
+            <property name="text">
+             <string>Breaker state</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="breakerStateCombo">
+            <item>
+             <property name="text">
+              <string>Closed</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Open</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <widget class="QTableWidget" name="parametersTable">

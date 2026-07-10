@@ -56,6 +56,7 @@ private:
     int selectedWindowSeconds() const;
     QDateTime selectedEndTime() const;
     void emitTemperatureAlerts(const SensorSnapshot &snapshot);
+    void updateBreakerControls(Equipment *equipment);
 
     static void applySnapshotToLayout(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot);
 
@@ -72,5 +73,6 @@ private:
     QString m_selectedEquipmentName;
     SensorSnapshot m_lastSnapshot;
     bool m_hasLastSnapshot;
+    bool m_breakerClosedState;
 };
 #endif // MAINWINDOW_H

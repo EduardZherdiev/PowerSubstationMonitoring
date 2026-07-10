@@ -32,6 +32,7 @@
 #include <QTableWidgetItem>
 #include <QDir>
 #include <QRandomGenerator>
+#include <QtMath>
 
 namespace {
 
@@ -50,6 +51,12 @@ QString formatC(double value)
     return QStringLiteral("%1 C").arg(QString::number(value, 'f', 1));
 }
 
+double cooledTemperature(double previousTemperature)
+{
+    const double ambientTemperature = 34.0;
+    return qMax(ambientTemperature, previousTemperature - 1.8);
+}
+
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent)
@@ -65,6 +72,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_currentScene(MonitoringChart::createScene(this))
     , m_temperatureScene(MonitoringChart::createScene(this))
     , m_hasLastSnapshot(false)
+    , m_breakerClosedState(true)
 {
     ui->setupUi(this);
     diagramView = ui->graphicsView;
@@ -131,6 +139,9 @@ void MainWindow::configureParameterPanel()
     ui->parametersTable->horizontalHeader()->setStretchLastSection(true);
     ui->parametersTable->verticalHeader()->hide();
     ui->parametersTable->setColumnWidth(0, 130);
+    ui->breakerControlLabel->setVisible(false);
+    ui->breakerStateCombo->setVisible(false);
+    ui->breakerStateCombo->setCurrentText(QStringLiteral("Closed"));
 }
 
 void MainWindow::connectInteractions()
@@ -185,6 +196,19 @@ void MainWindow::connectInteractions()
         if (ui->day->isChecked()) {
             refreshMonitoringCharts();
         }
+    });
+
+    connect(ui->breakerStateCombo, &QComboBox::currentTextChanged, this, [this](const QString &text) {
+        const bool shouldBeClosed = text != QStringLiteral("Open");
+        if (m_breakerClosedState == shouldBeClosed) {
+            return;
+        }
+
+        m_breakerClosedState = shouldBeClosed;
+        logInfo(QStringLiteral("User Action"),
+                QStringLiteral("Breaker CB-1 set to %1").arg(m_breakerClosedState ? QStringLiteral("Closed")
+                                                                                  : QStringLiteral("Open")));
+        refreshFromTelemetry();
     });
 
 }
@@ -300,25 +324,47 @@ void MainWindow::refreshFromTelemetry()
     }
 
     const SensorSnapshot snapshot = m_sensorSimulator->nextSnapshot();
+    SensorSnapshot adjustedSnapshot = snapshot;
+    adjustedSnapshot.breakerClosed = m_breakerClosedState;
+
+    if (!adjustedSnapshot.breakerClosed) {
+        adjustedSnapshot.sourceCurrentA = 0.0;
+        adjustedSnapshot.transformerLoadPercent = 0.0;
+
+        const double referenceTemperature = m_hasLastSnapshot
+            ? m_lastSnapshot.transformerTemperatureC
+            : adjustedSnapshot.transformerTemperatureC;
+        adjustedSnapshot.transformerTemperatureC = cooledTemperature(referenceTemperature);
+        adjustedSnapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), adjustedSnapshot.transformerTemperatureC);
+    }
+
+    const QDateTime sampleTime = QDateTime::currentDateTime();
+    const double monitoredVoltageKv = adjustedSnapshot.breakerClosed ? adjustedSnapshot.sourceVoltageKv : 0.0;
+    const double monitoredCurrentA = adjustedSnapshot.breakerClosed ? adjustedSnapshot.sourceCurrentA : 0.0;
+    TelemetryHistory::appendSample(TelemetryHistory::SeriesKind::Voltage, TelemetrySample{sampleTime, monitoredVoltageKv});
+    TelemetryHistory::appendSample(TelemetryHistory::SeriesKind::Current, TelemetrySample{sampleTime, monitoredCurrentA});
+    TelemetryHistory::appendSample(TelemetryHistory::SeriesKind::Temperature,
+                                   TelemetrySample{sampleTime, adjustedSnapshot.transformerTemperatureC});
+
     if (m_hasLastSnapshot) {
-        if (m_lastSnapshot.breakerClosed != snapshot.breakerClosed) {
-            logWarning(QStringLiteral("Telemetry"), snapshot.breakerClosed ? QStringLiteral("CB-1 closed") : QStringLiteral("CB-1 opened"));
+        if (m_lastSnapshot.breakerClosed != adjustedSnapshot.breakerClosed) {
+            logWarning(QStringLiteral("Telemetry"), adjustedSnapshot.breakerClosed ? QStringLiteral("CB-1 closed") : QStringLiteral("CB-1 opened"));
         }
 
-        if (snapshot.sourceVoltageKv > m_lastSnapshot.sourceVoltageKv + 2.0 || snapshot.sourceVoltageKv < m_lastSnapshot.sourceVoltageKv - 2.0) {
-            logInfo(QStringLiteral("Telemetry"), QStringLiteral("Source voltage changed to %1").arg(formatKv(snapshot.sourceVoltageKv)));
+        if (adjustedSnapshot.sourceVoltageKv > m_lastSnapshot.sourceVoltageKv + 2.0 || adjustedSnapshot.sourceVoltageKv < m_lastSnapshot.sourceVoltageKv - 2.0) {
+            logInfo(QStringLiteral("Telemetry"), QStringLiteral("Source voltage changed to %1").arg(formatKv(adjustedSnapshot.sourceVoltageKv)));
         }
 
-        if (snapshot.transformerTemperatureC > m_lastSnapshot.transformerTemperatureC + 1.5 || snapshot.transformerTemperatureC < m_lastSnapshot.transformerTemperatureC - 1.5) {
-            logInfo(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature changed to %1").arg(formatC(snapshot.transformerTemperatureC)));
+        if (adjustedSnapshot.transformerTemperatureC > m_lastSnapshot.transformerTemperatureC + 1.5 || adjustedSnapshot.transformerTemperatureC < m_lastSnapshot.transformerTemperatureC - 1.5) {
+            logInfo(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature changed to %1").arg(formatC(adjustedSnapshot.transformerTemperatureC)));
         }
     }
 
-    emitTemperatureAlerts(snapshot);
+    emitTemperatureAlerts(adjustedSnapshot);
 
     *m_liveLayout = *m_baseLayout;
-    applySnapshotToLayout(m_liveLayout, snapshot);
-    PowerFlowCalculator::annotateLayout(m_liveLayout, snapshot.temperatureBySensor);
+    applySnapshotToLayout(m_liveLayout, adjustedSnapshot);
+    PowerFlowCalculator::annotateLayout(m_liveLayout, adjustedSnapshot.temperatureBySensor);
 
     equipmentModel->setLayout(*m_liveLayout);
     diagramView->setLayout(*m_liveLayout);
@@ -327,8 +373,8 @@ void MainWindow::refreshFromTelemetry()
     }
     restoreSelection();
 
-    if (!snapshot.notes.isEmpty()) {
-        for (const QString &note : snapshot.notes) {
+    if (!adjustedSnapshot.notes.isEmpty()) {
+        for (const QString &note : adjustedSnapshot.notes) {
             logInfo(QStringLiteral("Telemetry"), note);
         }
     }
@@ -336,11 +382,11 @@ void MainWindow::refreshFromTelemetry()
     refreshMonitoringCharts();
 
     statusBar()->showMessage(QStringLiteral("Live: %1 | %2 | %3")
-                                 .arg(formatKv(snapshot.sourceVoltageKv),
-                                      formatA(snapshot.sourceCurrentA),
-                                      formatC(snapshot.transformerTemperatureC)),
+                                 .arg(formatKv(adjustedSnapshot.sourceVoltageKv),
+                                      formatA(adjustedSnapshot.sourceCurrentA),
+                                      formatC(adjustedSnapshot.transformerTemperatureC)),
                              1500);
-    m_lastSnapshot = snapshot;
+    m_lastSnapshot = adjustedSnapshot;
     m_hasLastSnapshot = true;
 }
 
@@ -350,21 +396,21 @@ void MainWindow::refreshMonitoringCharts()
     const QDateTime endTime = selectedEndTime();
 
     MonitoringChart::render(m_voltageScene,
-                            TelemetryHistory::generateSeries(TelemetryHistory::SeriesKind::Voltage, endTime, windowSeconds),
+                            TelemetryHistory::series(TelemetryHistory::SeriesKind::Voltage, endTime, windowSeconds),
                             QStringLiteral("Voltage"),
                             QStringLiteral("kV"),
                             QColor(0x56, 0xC2, 0xFF),
                             DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
                             windowSeconds);
     MonitoringChart::render(m_currentScene,
-                            TelemetryHistory::generateSeries(TelemetryHistory::SeriesKind::Current, endTime, windowSeconds),
+                            TelemetryHistory::series(TelemetryHistory::SeriesKind::Current, endTime, windowSeconds),
                             QStringLiteral("Current"),
                             QStringLiteral("A"),
                             QColor(0xFF, 0xB8, 0x6B),
                             DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
                             windowSeconds);
     MonitoringChart::render(m_temperatureScene,
-                            TelemetryHistory::generateSeries(TelemetryHistory::SeriesKind::Temperature, endTime, windowSeconds),
+                            TelemetryHistory::series(TelemetryHistory::SeriesKind::Temperature, endTime, windowSeconds),
                             QStringLiteral("Temperature"),
                             QStringLiteral("C"),
                             QColor(0xD9, 0x2D, 0x20),
@@ -385,9 +431,24 @@ void MainWindow::applySnapshotToLayout(SubstationLayout::Layout *layout, const S
             node.status = QStringLiteral("Ready");
         } else if (node.id == QStringLiteral("CB-1")) {
             node.status = snapshot.breakerClosed ? QStringLiteral("Closed") : QStringLiteral("Open");
+        } else if (node.id == QStringLiteral("Bus-1")) {
+            node.status = snapshot.breakerClosed ? QStringLiteral("Energized") : QStringLiteral("De-energized");
+            node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? formatKv(snapshot.sourceVoltageKv) : QStringLiteral("0.0 kV");
+            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
         } else if (node.id == QStringLiteral("TR-1")) {
             node.parameters[QStringLiteral("Temperature")] = formatC(snapshot.transformerTemperatureC);
             node.parameters[QStringLiteral("Load")] = QStringLiteral("%1%").arg(QString::number(snapshot.transformerLoadPercent, 'f', 1));
+            node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? QStringLiteral("12.0 kV") : QStringLiteral("0.0 kV");
+            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
+            node.status = snapshot.breakerClosed ? QStringLiteral("Loading") : QStringLiteral("Cooling");
+        } else if (node.id == QStringLiteral("Bus-2")) {
+            node.status = snapshot.breakerClosed ? QStringLiteral("Energized") : QStringLiteral("De-energized");
+            node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? QStringLiteral("12.0 kV") : QStringLiteral("0.0 kV");
+            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
+        } else if (node.id == QStringLiteral("Line-2")) {
+            node.status = snapshot.breakerClosed ? QStringLiteral("Ready") : QStringLiteral("De-energized");
+            node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? QStringLiteral("12.0 kV") : QStringLiteral("0.0 kV");
+            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
         }
     }
 }
@@ -432,6 +493,7 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     ui->statusValueLabel->setText(equipment->status());
     ui->locationValueLabel->setText(equipment->location().isEmpty() ? "-" : equipment->location());
     ui->descriptionValueLabel->setText(equipment->description().isEmpty() ? "-" : equipment->description());
+    updateBreakerControls(equipment);
 
     const auto parameters = equipment->parameters();
     ui->parametersTable->clearContents();
@@ -449,6 +511,21 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     if (fromUserAction) {
         logInfo("User Action", QString("Selected equipment: %1").arg(equipment->name()));
     }
+}
+
+void MainWindow::updateBreakerControls(Equipment *equipment)
+{
+    const bool isBreaker = equipment && equipment->name() == QStringLiteral("CB-1");
+    ui->breakerControlLabel->setVisible(isBreaker);
+    ui->breakerStateCombo->setVisible(isBreaker);
+
+    if (!isBreaker) {
+        return;
+    }
+
+    const QSignalBlocker blocker(ui->breakerStateCombo);
+    ui->breakerStateCombo->setCurrentText(m_breakerClosedState ? QStringLiteral("Closed")
+                                                               : QStringLiteral("Open"));
 }
 
 void MainWindow::appendEvent(EventLevel level, const QString &source, const QString &message)
