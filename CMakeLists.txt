@@ -70,6 +70,7 @@ qt_add_executable(PowerSubstationMonitoring
     eventlogger.h eventlogger.cpp
     reportdialog.h reportdialog.cpp reportdialog.ui
     settingsdialog.h settingsdialog.cpp settingsdialog.ui
+    resources.qrc
 )
 
 target_include_directories(PowerSubstationMonitoring PRIVATE
