@@ -1,13 +1,15 @@
 #ifndef REPORTDIALOG_H
 #define REPORTDIALOG_H
 
-#include <QScrollArea>
+#include "eventlogger.h"
+
+#include <QDialog>
 
 namespace Ui {
 class ReportDialog;
 }
 
-class ReportDialog : public QScrollArea
+class ReportDialog : public QDialog
 {
     Q_OBJECT
 
@@ -16,6 +18,12 @@ public:
     ~ReportDialog();
 
 private:
+    QVector<EventRecord> selectedRecords() const;
+    QString reportText(const QVector<EventRecord> &records) const;
+    void refreshPreview();
+    void exportTxt();
+    void exportPdf();
+
     Ui::ReportDialog *ui;
 };
 

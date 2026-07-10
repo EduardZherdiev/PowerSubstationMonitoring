@@ -17,17 +17,45 @@ EventLogger::EventLogger(QObject *parent)
 
 void EventLogger::info(const QString &source, const QString &message)
 {
+    appendRecord(EventLevel::Info, source, message);
     emit eventLogged(EventLevel::Info, source, message);
 }
 
 void EventLogger::warning(const QString &source, const QString &message)
 {
+    appendRecord(EventLevel::Warning, source, message);
     emit eventLogged(EventLevel::Warning, source, message);
 }
 
 void EventLogger::critical(const QString &source, const QString &message)
 {
+    appendRecord(EventLevel::Critical, source, message);
     emit eventLogged(EventLevel::Critical, source, message);
+}
+
+QVector<EventRecord> EventLogger::records(const QDateTime &from,
+                                          const QDateTime &to,
+                                          bool warningsAndCriticalOnly) const
+{
+    QVector<EventRecord> filtered;
+    for (const EventRecord &record : m_records) {
+        if (from.isValid() && record.timestamp < from) {
+            continue;
+        }
+        if (to.isValid() && record.timestamp > to) {
+            continue;
+        }
+        if (warningsAndCriticalOnly && record.level == EventLevel::Info) {
+            continue;
+        }
+        filtered.append(record);
+    }
+    return filtered;
+}
+
+void EventLogger::appendRecord(EventLevel level, const QString &source, const QString &message)
+{
+    m_records.append(EventRecord{QDateTime::currentDateTime(), level, source, message});
 }
 
 void logInfo(const QString &source, const QString &message)

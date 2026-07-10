@@ -2,6 +2,7 @@
 
 #include <QHash>
 #include <QtMath>
+#include <qtimezone.h>
 
 namespace {
 
@@ -28,6 +29,18 @@ int sampleStepSeconds(int windowSeconds)
         return 60;
     }
     return 15 * 60;
+}
+
+QDateTime alignTimestamp(const QDateTime &timestamp, int stepSeconds)
+{
+    if (!timestamp.isValid()) {
+        return timestamp;
+    }
+
+    const qint64 step = qMax(1, stepSeconds);
+    const qint64 secs = timestamp.toSecsSinceEpoch();
+    const qint64 alignedSecs = (secs / step) * step;
+    return QDateTime::fromSecsSinceEpoch(alignedSecs, timestamp.timeZone());
 }
 
 double seedOffsetForDate(const QDateTime &timestamp)
@@ -63,18 +76,19 @@ QVector<TelemetrySample> generatedSeries(TelemetryHistory::SeriesKind kind,
     }
 
     const int stepSeconds = sampleStepSeconds(windowSeconds);
-    const QDateTime startTime = endTime.addSecs(-windowSeconds);
+    const QDateTime alignedEndTime = alignTimestamp(endTime, stepSeconds);
+    const QDateTime startTime = alignedEndTime.addSecs(-windowSeconds);
     const int sampleCount = qMax(2, windowSeconds / qMax(1, stepSeconds) + 1);
     samples.reserve(sampleCount);
 
     QDateTime timestamp = startTime;
-    while (timestamp <= endTime) {
+    while (timestamp <= alignedEndTime) {
         samples.append(TelemetrySample{timestamp, seriesValue(kind, timestamp)});
         timestamp = timestamp.addSecs(stepSeconds);
     }
 
-    if (samples.isEmpty() || samples.last().timestamp < endTime) {
-        samples.append(TelemetrySample{endTime, seriesValue(kind, endTime)});
+    if (samples.isEmpty() || samples.last().timestamp < alignedEndTime) {
+        samples.append(TelemetrySample{alignedEndTime, seriesValue(kind, alignedEndTime)});
     }
 
     return samples;
@@ -111,25 +125,24 @@ QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int w
         return filtered;
     }
 
-    const QDateTime startTime = endTime.addSecs(-windowSeconds);
     const int stepSeconds = sampleStepSeconds(windowSeconds);
-    QHash<qint64, int> indexByBucket;
-    indexByBucket.reserve(filtered.size());
+    const QDateTime alignedEndTime = alignTimestamp(endTime, stepSeconds);
+    const QDateTime startTime = alignedEndTime.addSecs(-windowSeconds);
+    QHash<qint64, int> indexByTimestamp;
+    indexByTimestamp.reserve(filtered.size());
 
     for (int i = 0; i < filtered.size(); ++i) {
-        const qint64 offset = startTime.secsTo(filtered.at(i).timestamp);
-        indexByBucket.insert(offset / qMax(1, stepSeconds), i);
+        indexByTimestamp.insert(filtered.at(i).timestamp.toSecsSinceEpoch(), i);
     }
 
     for (const TelemetrySample &sample : samples) {
         if (sample.timestamp >= startTime && sample.timestamp <= endTime) {
-            const qint64 offset = startTime.secsTo(sample.timestamp);
-            const qint64 bucket = offset / qMax(1, stepSeconds);
-            const auto it = indexByBucket.constFind(bucket);
-            if (it != indexByBucket.constEnd()) {
-                filtered[it.value()] = sample;
+            const QDateTime alignedSampleTime = alignTimestamp(sample.timestamp, stepSeconds);
+            const auto it = indexByTimestamp.constFind(alignedSampleTime.toSecsSinceEpoch());
+            if (it != indexByTimestamp.constEnd()) {
+                filtered[it.value()] = TelemetrySample{alignedSampleTime, sample.value};
             } else {
-                filtered.append(sample);
+                filtered.append(TelemetrySample{alignedSampleTime, sample.value});
             }
         }
     }

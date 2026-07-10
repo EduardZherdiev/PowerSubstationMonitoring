@@ -12,6 +12,7 @@
 #include "substationlayout.h"
 #include "aboutdialog.h"
 #include "eventlogger.h"
+#include "reportdialog.h"
 #include "settingsdialog.h"
 
 #include <QHeaderView>
@@ -172,6 +173,10 @@ void MainWindow::connectInteractions()
     connect(ui->actionSettings, &QAction::triggered, this,[this]() {
         SettingsDialog settingsDialog(this);
         settingsDialog.exec();
+    });
+    connect(ui->actionReport, &QAction::triggered, this, [this]() {
+        ReportDialog reportDialog(this);
+        reportDialog.exec();
     });
 
     connect(ui->periodComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
