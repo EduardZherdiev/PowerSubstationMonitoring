@@ -123,7 +123,11 @@ namespace MonitoringChart {
 
 Scene *createScene(QObject *parent)
 {
-    return new Scene(parent);
+    auto *scene = new Scene(parent);
+    QObject::connect(scene, &QObject::destroyed, [scene]() {
+        chartStates().remove(scene);
+    });
+    return scene;
 }
 
 void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
@@ -268,7 +272,10 @@ void render(QGraphicsScene *scene,
     QPainterPath path;
     const qint64 totalSeconds = qMax<qint64>(1, startTime.secsTo(endTime));
     bool firstPoint = true;
-    for (const TelemetrySample &sample : visible) {
+    const int maximumInteractivePoints = qMax(2, static_cast<int>(plotRect.width() / 4.0));
+    const int interactiveStep = qMax(1, visible.size() / maximumInteractivePoints);
+    for (int sampleIndex = 0; sampleIndex < visible.size(); ++sampleIndex) {
+        const TelemetrySample &sample = visible.at(sampleIndex);
         const qint64 elapsed = qMax<qint64>(0, startTime.secsTo(sample.timestamp));
         const double normalizedX = static_cast<double>(elapsed) / static_cast<double>(totalSeconds);
         const double normalizedY = (sample.value - minValue) / range;
@@ -281,7 +288,12 @@ void render(QGraphicsScene *scene,
             path.lineTo(x, y);
         }
 
-        QGraphicsEllipseItem *point = scene->addEllipse(x - 3.5, y - 3.5, 7.0, 7.0, QPen(lineColor.darker(140), 1.2), QBrush(lineColor));
+        const bool isInteractivePoint = sampleIndex % interactiveStep == 0 || sampleIndex == visible.size() - 1;
+        if (!isInteractivePoint) {
+            continue;
+        }
+
+        QGraphicsEllipseItem *point = scene->addEllipse(x - 3.5, y - 3.5, 7.0, 7.0, QPen(Qt::NoPen), QBrush(Qt::NoBrush));
         point->setFlag(QGraphicsItem::ItemIsSelectable, true);
         point->setAcceptedMouseButtons(Qt::LeftButton);
         point->setData(0, sample.timestamp.toSecsSinceEpoch());

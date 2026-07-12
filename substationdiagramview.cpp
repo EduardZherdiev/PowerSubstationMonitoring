@@ -40,6 +40,11 @@ void SubstationDiagramView::setLayout(const SubstationLayout::Layout &layout)
     buildDiagram();
 }
 
+const SubstationLayout::Layout &SubstationDiagramView::substationLayout() const
+{
+    return m_layout;
+}
+
 void SubstationDiagramView::fitToContent()
 {
     logInfo("SubstationDiagramView", "Fitting diagram to content");

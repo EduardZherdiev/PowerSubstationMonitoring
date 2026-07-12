@@ -35,7 +35,6 @@
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QDir>
-#include <QRandomGenerator>
 #include <QtMath>
 
 namespace {
@@ -434,8 +433,10 @@ void MainWindow::refreshFromTelemetry()
     applySnapshotToLayout(m_liveLayout, adjustedSnapshot);
     PowerFlowCalculator::annotateLayout(m_liveLayout, adjustedSnapshot.temperatureBySensor);
 
-    equipmentModel->setLayout(*m_liveLayout);
-    diagramView->setLayout(*m_liveLayout);
+    equipmentModel->updateLayout(*m_liveLayout);
+    if (diagramView->substationLayout().nodes.isEmpty()) {
+        diagramView->setLayout(*m_liveLayout);
+    }
     if (!m_selectedEquipmentName.isEmpty()) {
         diagramView->selectEquipment(m_selectedEquipmentName);
     }
@@ -647,6 +648,12 @@ void MainWindow::appendEvent(EventLevel level, const QString &source, const QStr
     ui->eventLogTable->setItem(row, 0, timeItem);
     ui->eventLogTable->setItem(row, 2, new QTableWidgetItem(source));
     ui->eventLogTable->setItem(row, 3, new QTableWidgetItem(message));
+
+    constexpr int maximumVisibleEvents = 1000;
+    while (ui->eventLogTable->rowCount() > maximumVisibleEvents) {
+        ui->eventLogTable->removeRow(0);
+    }
+    row = ui->eventLogTable->rowCount() - 1;
     ui->eventLogTable->selectRow(row);
     ui->eventLogTable->scrollToBottom();
 }

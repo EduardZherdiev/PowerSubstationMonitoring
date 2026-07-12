@@ -180,6 +180,13 @@ QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records
 
 void ReportDialog::refreshPreview()
 {
+    const bool validPeriod = ui->fromEdit->dateTime() <= ui->toEdit->dateTime();
+    ui->exportTxtButton->setEnabled(validPeriod);
+    ui->exportPdfButton->setEnabled(validPeriod);
+    if (!validPeriod) {
+        ui->previewEdit->setPlainText(QStringLiteral("The start of the period must not be later than its end."));
+        return;
+    }
     ui->previewEdit->setPlainText(reportText(selectedRecords()));
 }
 

@@ -28,6 +28,7 @@ public:
     explicit SubstationDiagramView(QWidget *parent = nullptr);
 
     void setLayout(const SubstationLayout::Layout &layout);
+    const SubstationLayout::Layout &substationLayout() const;
     void fitToContent();
     void selectEquipment(const QString &equipmentKey);
     void refreshTheme();

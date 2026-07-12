@@ -29,8 +29,13 @@ public:
     QString status() const;
     QString location() const;
     QString description() const;
-    QMap<QString, QString> parameters() const;
+    const QMap<QString, QString> &parameters() const;
     QString data(int column) const;
+    void update(const QString &type,
+                const QString &status,
+                const QString &location,
+                const QString &description,
+                const QMap<QString, QString> &parameters);
 
 private:
     QString m_name;

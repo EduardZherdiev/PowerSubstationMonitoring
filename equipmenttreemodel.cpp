@@ -20,6 +20,29 @@ void EquipmentTreeModel::setLayout(const SubstationLayout::Layout &layout)
     endResetModel();
 }
 
+void EquipmentTreeModel::updateLayout(const SubstationLayout::Layout &layout)
+{
+    if (m_rootItem->childCount() != layout.nodes.size()) {
+        setLayout(layout);
+        return;
+    }
+
+    for (const SubstationLayout::NodeSpec &node : layout.nodes) {
+        Equipment *equipment = equipmentByName(node.id);
+        if (!equipment) {
+            setLayout(layout);
+            return;
+        }
+
+        equipment->update(node.type, node.status, node.location, node.description, node.parameters);
+        const QModelIndex firstColumn = indexForEquipment(equipment);
+        if (firstColumn.isValid()) {
+            emit dataChanged(firstColumn, index(firstColumn.row(), columnCount() - 1, firstColumn.parent()),
+                             {Qt::DisplayRole});
+        }
+    }
+}
+
 EquipmentTreeModel::~EquipmentTreeModel()
 {
     delete m_rootItem;

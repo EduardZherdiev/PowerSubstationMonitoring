@@ -4,6 +4,9 @@
 #include <QtMath>
 #include <qtimezone.h>
 
+#include <algorithm>
+#include <iterator>
+
 namespace {
 
 QHash<int, QVector<TelemetrySample>> &seriesStorage()
@@ -108,8 +111,12 @@ void appendSample(SeriesKind kind, const TelemetrySample &sample)
     samples.append(sample);
 
     const QDateTime cutoff = sample.timestamp.addDays(-31);
-    while (!samples.isEmpty() && samples.first().timestamp < cutoff) {
-        samples.removeFirst();
+    const auto firstRetained = std::lower_bound(samples.cbegin(), samples.cend(), cutoff,
+        [](const TelemetrySample &stored, const QDateTime &threshold) {
+            return stored.timestamp < threshold;
+        });
+    if (firstRetained != samples.cbegin()) {
+        samples.erase(samples.begin(), samples.begin() + std::distance(samples.cbegin(), firstRetained));
     }
 }
 
@@ -120,7 +127,11 @@ QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int w
         return filtered;
     }
 
-    const QVector<TelemetrySample> samples = seriesStorage().value(seriesKey(kind));
+    const auto storageIt = seriesStorage().constFind(seriesKey(kind));
+    if (storageIt == seriesStorage().cend()) {
+        return filtered;
+    }
+    const QVector<TelemetrySample> &samples = storageIt.value();
     if (filtered.isEmpty() || samples.isEmpty()) {
         return filtered;
     }
@@ -135,15 +146,18 @@ QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int w
         indexByTimestamp.insert(filtered.at(i).timestamp.toSecsSinceEpoch(), i);
     }
 
-    for (const TelemetrySample &sample : samples) {
-        if (sample.timestamp >= startTime && sample.timestamp <= endTime) {
-            const QDateTime alignedSampleTime = alignTimestamp(sample.timestamp, stepSeconds);
-            const auto it = indexByTimestamp.constFind(alignedSampleTime.toSecsSinceEpoch());
-            if (it != indexByTimestamp.constEnd()) {
-                filtered[it.value()] = TelemetrySample{alignedSampleTime, sample.value};
-            } else {
-                filtered.append(TelemetrySample{alignedSampleTime, sample.value});
-            }
+    const auto firstSample = std::lower_bound(samples.cbegin(), samples.cend(), startTime,
+        [](const TelemetrySample &stored, const QDateTime &threshold) {
+            return stored.timestamp < threshold;
+        });
+    for (auto sampleIt = firstSample; sampleIt != samples.cend() && sampleIt->timestamp <= endTime; ++sampleIt) {
+        const TelemetrySample &sample = *sampleIt;
+        const QDateTime alignedSampleTime = alignTimestamp(sample.timestamp, stepSeconds);
+        const auto it = indexByTimestamp.constFind(alignedSampleTime.toSecsSinceEpoch());
+        if (it != indexByTimestamp.constEnd()) {
+            filtered[it.value()] = TelemetrySample{alignedSampleTime, sample.value};
+        } else {
+            filtered.append(TelemetrySample{alignedSampleTime, sample.value});
         }
     }
 

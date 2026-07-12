@@ -83,7 +83,7 @@ QString Equipment::description() const
     return m_description;
 }
 
-QMap<QString, QString> Equipment::parameters() const
+const QMap<QString, QString> &Equipment::parameters() const
 {
     return m_parameters;
 }
@@ -100,4 +100,17 @@ QString Equipment::data(int column) const
     default:
         return QString();
     }
+}
+
+void Equipment::update(const QString &type,
+                       const QString &status,
+                       const QString &location,
+                       const QString &description,
+                       const QMap<QString, QString> &parameters)
+{
+    m_type = type;
+    m_status = status;
+    m_location = location;
+    m_description = description;
+    m_parameters = parameters;
 }

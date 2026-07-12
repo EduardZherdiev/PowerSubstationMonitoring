@@ -18,6 +18,7 @@ public:
     ~EquipmentTreeModel() override;
 
     void setLayout(const SubstationLayout::Layout &layout);
+    void updateLayout(const SubstationLayout::Layout &layout);
     Equipment *equipmentForIndex(const QModelIndex &index) const;
     QModelIndex indexForEquipment(Equipment *equipment) const;
     Equipment *equipmentByName(const QString &name) const;
