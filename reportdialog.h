@@ -20,6 +20,7 @@ public:
 private:
     QVector<EventRecord> selectedRecords() const;
     QString reportText(const QVector<EventRecord> &records) const;
+    QString temperaturePeriodsText(const QVector<EventRecord> &records) const;
     void refreshPreview();
     void exportTxt();
     void exportPdf();

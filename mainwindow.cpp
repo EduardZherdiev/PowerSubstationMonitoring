@@ -58,6 +58,26 @@ double cooledTemperature(double previousTemperature)
     return qMax(ambientTemperature, previousTemperature - 1.8);
 }
 
+double smoothApproach(double currentValue, double targetValue, double maxStep)
+{
+    if (qAbs(targetValue - currentValue) <= maxStep) {
+        return targetValue;
+    }
+    return currentValue + (targetValue > currentValue ? maxStep : -maxStep);
+}
+
+bool equipmentSupportsTemperatureControl(const Equipment *equipment)
+{
+    if (!equipment) {
+        return false;
+    }
+
+    const QMap<QString, QString> parameters = equipment->parameters();
+    return parameters.contains(QStringLiteral("Temperature"))
+        || parameters.contains(QStringLiteral("Temperature Sensor"))
+        || parameters.contains(QStringLiteral("Rated Temperature"));
+}
+
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent)
@@ -74,6 +94,9 @@ MainWindow::MainWindow(QWidget *parent)
     , m_temperatureScene(MonitoringChart::createScene(this))
     , m_hasLastSnapshot(false)
     , m_breakerClosedState(true)
+    , m_manualTemperatureActive(false)
+    , m_manualTemperatureValue(68.0)
+    , m_temperatureRecoveryPhase(0.0)
 {
     ui->setupUi(this);
     diagramView = ui->graphicsView;
@@ -143,6 +166,13 @@ void MainWindow::configureParameterPanel()
     ui->breakerControlLabel->setVisible(false);
     ui->breakerStateCombo->setVisible(false);
     ui->breakerStateCombo->setCurrentText(QStringLiteral("Closed"));
+    ui->temperatureControlLabel->setVisible(false);
+    ui->temperatureSpinBox->setVisible(false);
+    ui->applyTemperatureButton->setVisible(false);
+    ui->temperatureSpinBox->setSuffix(QStringLiteral(" C"));
+    ui->temperatureSpinBox->setRange(-40.0, 150.0);
+    ui->temperatureSpinBox->setDecimals(1);
+    ui->temperatureSpinBox->setSingleStep(0.5);
 }
 
 void MainWindow::connectInteractions()
@@ -213,6 +243,13 @@ void MainWindow::connectInteractions()
         logInfo(QStringLiteral("User Action"),
                 QStringLiteral("Breaker CB-1 set to %1").arg(m_breakerClosedState ? QStringLiteral("Closed")
                                                                                   : QStringLiteral("Open")));
+        refreshFromTelemetry();
+    });
+    connect(ui->applyTemperatureButton, &QPushButton::clicked, this, [this]() {
+        m_manualTemperatureValue = ui->temperatureSpinBox->value();
+        m_manualTemperatureActive = true;
+        logInfo(QStringLiteral("User Action"),
+                QStringLiteral("Transformer temperature set to %1").arg(formatC(m_manualTemperatureValue)));
         refreshFromTelemetry();
     });
 
@@ -300,25 +337,11 @@ void MainWindow::emitTemperatureAlerts(const SensorSnapshot &snapshot)
 {
     constexpr double warningThreshold = 75.0;
     constexpr double criticalThreshold = 85.0;
-
-    if (!m_hasLastSnapshot) {
-        if (snapshot.transformerTemperatureC >= criticalThreshold) {
-            logCritical(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature critical: %1").arg(formatC(snapshot.transformerTemperatureC)));
-        } else if (snapshot.transformerTemperatureC >= warningThreshold) {
-            logWarning(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature warning: %1").arg(formatC(snapshot.transformerTemperatureC)));
-        }
-        return;
-    }
-
-    const double previous = m_lastSnapshot.transformerTemperatureC;
     const double current = snapshot.transformerTemperatureC;
-
-    if (previous < warningThreshold && current >= warningThreshold && current < criticalThreshold) {
-        logWarning(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature warning: %1").arg(formatC(current)));
-    }
-
-    if (previous < criticalThreshold && current >= criticalThreshold) {
+    if (current >= criticalThreshold) {
         logCritical(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature critical: %1").arg(formatC(current)));
+    } else if (current >= warningThreshold) {
+        logWarning(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature warning: %1").arg(formatC(current)));
     }
 }
 
@@ -341,6 +364,23 @@ void MainWindow::refreshFromTelemetry()
             : adjustedSnapshot.transformerTemperatureC;
         adjustedSnapshot.transformerTemperatureC = cooledTemperature(referenceTemperature);
         adjustedSnapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), adjustedSnapshot.transformerTemperatureC);
+    }
+
+    if (m_manualTemperatureActive) {
+        const double targetTemperature = adjustedSnapshot.transformerTemperatureC;
+        m_temperatureRecoveryPhase += 0.55;
+        const double distanceToTarget = qAbs(m_manualTemperatureValue - targetTemperature);
+        const double wobbleAmplitude = qMin(0.45, distanceToTarget * 0.18);
+        const double wobbleTarget = targetTemperature + qSin(m_temperatureRecoveryPhase) * wobbleAmplitude;
+        m_manualTemperatureValue = smoothApproach(m_manualTemperatureValue, wobbleTarget, 0.8);
+        adjustedSnapshot.transformerTemperatureC = m_manualTemperatureValue;
+        adjustedSnapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), adjustedSnapshot.transformerTemperatureC);
+
+        if (qAbs(m_manualTemperatureValue - targetTemperature) < 0.15) {
+            m_manualTemperatureValue = targetTemperature;
+            m_manualTemperatureActive = false;
+            m_temperatureRecoveryPhase = 0.0;
+        }
     }
 
     const QDateTime sampleTime = QDateTime::currentDateTime();
@@ -499,6 +539,7 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     ui->locationValueLabel->setText(equipment->location().isEmpty() ? "-" : equipment->location());
     ui->descriptionValueLabel->setText(equipment->description().isEmpty() ? "-" : equipment->description());
     updateBreakerControls(equipment);
+    updateTemperatureControls(equipment);
 
     const auto parameters = equipment->parameters();
     ui->parametersTable->clearContents();
@@ -531,6 +572,28 @@ void MainWindow::updateBreakerControls(Equipment *equipment)
     const QSignalBlocker blocker(ui->breakerStateCombo);
     ui->breakerStateCombo->setCurrentText(m_breakerClosedState ? QStringLiteral("Closed")
                                                                : QStringLiteral("Open"));
+}
+
+void MainWindow::updateTemperatureControls(Equipment *equipment)
+{
+    const bool hasTemperatureControl = equipmentSupportsTemperatureControl(equipment);
+    ui->temperatureControlLabel->setVisible(hasTemperatureControl);
+    ui->temperatureSpinBox->setVisible(hasTemperatureControl);
+    ui->applyTemperatureButton->setVisible(hasTemperatureControl);
+
+    if (!hasTemperatureControl) {
+        return;
+    }
+
+    if (ui->temperatureSpinBox->hasFocus()) {
+        return;
+    }
+
+    const QSignalBlocker blocker(ui->temperatureSpinBox);
+    const double displayedTemperature = m_manualTemperatureActive
+        ? m_manualTemperatureValue
+        : (m_hasLastSnapshot ? m_lastSnapshot.transformerTemperatureC : 68.0);
+    ui->temperatureSpinBox->setValue(displayedTemperature);
 }
 
 void MainWindow::appendEvent(EventLevel level, const QString &source, const QString &message)

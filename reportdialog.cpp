@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QPrinter>
+#include <QRegularExpression>
 #include <QTextDocument>
 #include <QTextStream>
 
@@ -21,6 +22,38 @@ QString levelText(EventLevel level)
         return QStringLiteral("Critical");
     }
     return QStringLiteral("Info");
+}
+
+bool isTemperatureAlert(const EventRecord &record)
+{
+    return record.source == QStringLiteral("Telemetry")
+        && record.message.contains(QStringLiteral("Transformer temperature"), Qt::CaseInsensitive);
+}
+
+double temperatureValueFromMessage(const QString &message, bool *ok = nullptr)
+{
+    static const QRegularExpression numberPattern(QStringLiteral(R"(([+-]?\d+(?:\.\d+)?))"));
+    const QRegularExpressionMatch match = numberPattern.match(message);
+    if (!match.hasMatch()) {
+        if (ok) {
+            *ok = false;
+        }
+        return 0.0;
+    }
+
+    bool parsed = false;
+    const double value = match.captured(1).toDouble(&parsed);
+    if (ok) {
+        *ok = parsed;
+    }
+    return parsed ? value : 0.0;
+}
+
+QString temperatureMessagePrefix(EventLevel level)
+{
+    return level == EventLevel::Critical
+        ? QStringLiteral("Transformer temperature critical: ")
+        : QStringLiteral("Transformer temperature warning: ");
 }
 
 } // namespace
@@ -65,19 +98,83 @@ QString ReportDialog::reportText(const QVector<EventRecord> &records) const
            << " - " << ui->toEdit->dateTime().toString("yyyy-MM-dd HH:mm:ss") << "\n";
     stream << "Included levels: Warning, Critical\n";
     stream << "Total events: " << records.size() << "\n\n";
+    stream << temperaturePeriodsText(records);
 
-    if (records.isEmpty()) {
-        stream << "No warning or critical events for the selected period.\n";
+    // if (records.isEmpty()) {
+    //     stream << "No warning or critical events for the selected period.\n";
+    //     return text;
+    // }
+
+    // for (const EventRecord &record : records) {
+    //     stream << record.timestamp.toString("yyyy-MM-dd HH:mm:ss")
+    //            << " | " << levelText(record.level)
+    //            << " | " << record.source
+    //            << " | " << record.message << "\n";
+    // }
+
+    return text;
+}
+
+QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records) const
+{
+    QString text;
+    QTextStream stream(&text);
+    stream << "Temperature out-of-range periods:\n";
+
+    QVector<EventRecord> temperatureRecords;
+    for (const EventRecord &record : records) {
+        if (isTemperatureAlert(record)) {
+            temperatureRecords.append(record);
+        }
+    }
+
+    if (temperatureRecords.isEmpty()) {
+        stream << "None\n\n";
         return text;
     }
 
-    for (const EventRecord &record : records) {
-        stream << record.timestamp.toString("yyyy-MM-dd HH:mm:ss")
-               << " | " << levelText(record.level)
-               << " | " << record.source
-               << " | " << record.message << "\n";
+    QDateTime periodStart = temperatureRecords.first().timestamp;
+    QDateTime periodEnd = temperatureRecords.first().timestamp;
+    EventLevel periodLevel = temperatureRecords.first().level;
+    double startTemperature = temperatureValueFromMessage(temperatureRecords.first().message);
+    double endTemperature = startTemperature;
+
+    for (int i = 1; i < temperatureRecords.size(); ++i) {
+        const EventRecord &record = temperatureRecords.at(i);
+        bool currentOk = false;
+        const double currentTemperature = temperatureValueFromMessage(record.message, &currentOk);
+        const bool samePeriod = periodEnd.secsTo(record.timestamp) <= 2 && record.level == periodLevel;
+        if (samePeriod) {
+            periodEnd = record.timestamp;
+            if (currentOk) {
+                endTemperature = currentTemperature;
+            }
+            continue;
+        }
+
+        stream << periodStart.toString("yyyy-MM-dd HH:mm:ss")
+               << " - " << periodEnd.toString("yyyy-MM-dd HH:mm:ss")
+               << " | " << levelText(periodLevel)
+               << " | Telemetry"
+               << " | " << temperatureMessagePrefix(periodLevel)
+               << QString::number(startTemperature, 'f', 1)
+               << " - " << QString::number(endTemperature, 'f', 1)
+               << " C\n";
+        periodStart = record.timestamp;
+        periodEnd = record.timestamp;
+        periodLevel = record.level;
+        startTemperature = currentOk ? currentTemperature : 0.0;
+        endTemperature = startTemperature;
     }
 
+    stream << periodStart.toString("yyyy-MM-dd HH:mm:ss")
+           << " - " << periodEnd.toString("yyyy-MM-dd HH:mm:ss")
+           << " | " << levelText(periodLevel)
+           << " | Telemetry"
+           << " | " << temperatureMessagePrefix(periodLevel)
+           << QString::number(startTemperature, 'f', 1)
+           << " - " << QString::number(endTemperature, 'f', 1)
+           << " C\n\n";
     return text;
 }
 

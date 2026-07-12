@@ -387,6 +387,27 @@
          </layout>
         </item>
         <item>
+         <layout class="QHBoxLayout" name="temperatureControlLayout">
+          <item>
+           <widget class="QLabel" name="temperatureControlLabel">
+            <property name="text">
+             <string>Temperature</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDoubleSpinBox" name="temperatureSpinBox"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="applyTemperatureButton">
+            <property name="text">
+             <string>Apply</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
          <widget class="QTableWidget" name="parametersTable">
           <property name="editTriggers">
            <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
