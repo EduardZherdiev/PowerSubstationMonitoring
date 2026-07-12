@@ -16,6 +16,8 @@
 #include "settingsdialog.h"
 
 #include <QHeaderView>
+#include <QApplication>
+#include <QClipboard>
 #include <QDateTime>
 #include <QGraphicsScene>
 #include <QPalette>
@@ -25,6 +27,7 @@
 #include <QSplitter>
 #include <QResizeEvent>
 #include <QSignalBlocker>
+#include <QShortcut>
 #include <QTimer>
 #include <QStatusBar>
 #include <QAbstractItemView>
@@ -173,6 +176,26 @@ void MainWindow::configureParameterPanel()
     ui->temperatureSpinBox->setRange(-40.0, 150.0);
     ui->temperatureSpinBox->setDecimals(1);
     ui->temperatureSpinBox->setSingleStep(0.5);
+
+    auto *copyShortcut = new QShortcut(QKeySequence::Copy, ui->eventLogTable);
+    connect(copyShortcut, &QShortcut::activated, this, [this]() {
+        if (!ui->eventLogTable) {
+            return;
+        }
+
+        const int row = ui->eventLogTable->currentRow();
+        if (row < 0) {
+            return;
+        }
+
+        QStringList cells;
+        cells.reserve(ui->eventLogTable->columnCount());
+        for (int column = 0; column < ui->eventLogTable->columnCount(); ++column) {
+            QTableWidgetItem *item = ui->eventLogTable->item(row, column);
+            cells.append(item ? item->text() : QString());
+        }
+        QGuiApplication::clipboard()->setText(cells.join(QStringLiteral("\t")));
+    });
 }
 
 void MainWindow::connectInteractions()
@@ -624,6 +647,8 @@ void MainWindow::appendEvent(EventLevel level, const QString &source, const QStr
     ui->eventLogTable->setItem(row, 0, timeItem);
     ui->eventLogTable->setItem(row, 2, new QTableWidgetItem(source));
     ui->eventLogTable->setItem(row, 3, new QTableWidgetItem(message));
+    ui->eventLogTable->selectRow(row);
+    ui->eventLogTable->scrollToBottom();
 }
 
 Equipment *MainWindow::equipmentFromTreeIndex(const QModelIndex &index) const
