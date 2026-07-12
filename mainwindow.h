@@ -4,23 +4,19 @@
 #include <QDateTime>
 #include <QMainWindow>
 
-#include "sensortelemetry.h"
-#include "telemetryhistory.h"
+#include "telemetryservice.h"
 
 class QResizeEvent;
 class Equipment;
 class EquipmentTreeModel;
 class SubstationDiagramView;
 class QGraphicsScene;
-class QTimer;
 class QColor;
 class QModelIndex;
 enum class EventLevel;
 namespace SubstationLayout {
 struct Layout;
 }
-
-class SensorTelemetrySimulator;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -44,7 +40,8 @@ private:
     void connectInteractions();
     void loadSubstationLayout();
     void startTelemetryMonitoring();
-    void refreshFromTelemetry();
+    void processSnapshot(const SensorSnapshot &snapshot);
+    void updateConnectionState(TelemetryService::ConnectionState state);
     void setupMonitoringCharts();
     void refreshMonitoringCharts();
     void rememberCurrentSelection(const QModelIndex &index);
@@ -59,13 +56,10 @@ private:
     void updateBreakerControls(Equipment *equipment);
     void updateTemperatureControls(Equipment *equipment);
 
-    static void applySnapshotToLayout(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot);
-
     Ui::MainWindow *ui;
     EquipmentTreeModel *equipmentModel;
     SubstationDiagramView *diagramView;
-    SensorTelemetrySimulator *m_sensorSimulator;
-    QTimer *m_telemetryTimer;
+    TelemetryService *m_telemetryService;
     SubstationLayout::Layout *m_baseLayout;
     SubstationLayout::Layout *m_liveLayout;
     QGraphicsScene *m_voltageScene;
@@ -74,9 +68,5 @@ private:
     QString m_selectedEquipmentName;
     SensorSnapshot m_lastSnapshot;
     bool m_hasLastSnapshot;
-    bool m_breakerClosedState;
-    bool m_manualTemperatureActive;
-    double m_manualTemperatureValue;
-    double m_temperatureRecoveryPhase;
 };
 #endif // MAINWINDOW_H

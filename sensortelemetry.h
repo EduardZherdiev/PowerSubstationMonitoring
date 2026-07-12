@@ -15,12 +15,19 @@ struct SensorSnapshot
     QStringList notes;
 };
 
-class SensorTelemetrySimulator
+class ITelemetrySource
+{
+public:
+    virtual ~ITelemetrySource() = default;
+    virtual bool tryReadSnapshot(SensorSnapshot *snapshot) = 0;
+};
+
+class SensorTelemetrySimulator final : public ITelemetrySource
 {
 public:
     SensorTelemetrySimulator();
 
-    SensorSnapshot nextSnapshot();
+    bool tryReadSnapshot(SensorSnapshot *snapshot) override;
 
 private:
     double m_phase;

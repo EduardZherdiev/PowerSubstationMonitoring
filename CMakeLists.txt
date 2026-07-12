@@ -64,6 +64,8 @@ qt_add_executable(PowerSubstationMonitoring
     diagramtheme.h diagramtheme.cpp
     powerflowcalculator.h powerflowcalculator.cpp
     sensortelemetry.h sensortelemetry.cpp
+    telemetryservice.h telemetryservice.cpp
+    telemetrylayoutmapper.h telemetrylayoutmapper.cpp
     telemetryhistory.h telemetryhistory.cpp
     monitoringchart.h monitoringchart.cpp
     aboutdialog.h aboutdialog.cpp aboutdialog.ui

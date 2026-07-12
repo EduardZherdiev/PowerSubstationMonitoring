@@ -23,8 +23,12 @@ SensorTelemetrySimulator::SensorTelemetrySimulator()
 {
 }
 
-SensorSnapshot SensorTelemetrySimulator::nextSnapshot()
+bool SensorTelemetrySimulator::tryReadSnapshot(SensorSnapshot *result)
 {
+    if (!result) {
+        return false;
+    }
+
     m_phase += 0.18;
 
     SensorSnapshot snapshot;
@@ -43,5 +47,6 @@ SensorSnapshot SensorTelemetrySimulator::nextSnapshot()
         snapshot.notes.append(QStringLiteral("Transformer temperature warning"));
     }
 
-    return snapshot;
+    *result = snapshot;
+    return true;
 }

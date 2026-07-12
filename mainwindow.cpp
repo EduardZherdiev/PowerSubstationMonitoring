@@ -8,6 +8,8 @@
 #include "sensortelemetry.h"
 #include "monitoringchart.h"
 #include "telemetryhistory.h"
+#include "telemetryservice.h"
+#include "telemetrylayoutmapper.h"
 #include "substationdiagramview.h"
 #include "substationlayout.h"
 #include "aboutdialog.h"
@@ -28,14 +30,13 @@
 #include <QResizeEvent>
 #include <QSignalBlocker>
 #include <QShortcut>
-#include <QTimer>
 #include <QStatusBar>
 #include <QAbstractItemView>
 #include <QSizePolicy>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QDir>
-#include <QtMath>
+#include <memory>
 
 namespace {
 
@@ -54,27 +55,13 @@ QString formatC(double value)
     return QStringLiteral("%1 C").arg(QString::number(value, 'f', 1));
 }
 
-double cooledTemperature(double previousTemperature)
-{
-    const double ambientTemperature = 34.0;
-    return qMax(ambientTemperature, previousTemperature - 1.8);
-}
-
-double smoothApproach(double currentValue, double targetValue, double maxStep)
-{
-    if (qAbs(targetValue - currentValue) <= maxStep) {
-        return targetValue;
-    }
-    return currentValue + (targetValue > currentValue ? maxStep : -maxStep);
-}
-
 bool equipmentSupportsTemperatureControl(const Equipment *equipment)
 {
     if (!equipment) {
         return false;
     }
 
-    const QMap<QString, QString> parameters = equipment->parameters();
+    const QMap<QString, QString> &parameters = equipment->parameters();
     return parameters.contains(QStringLiteral("Temperature"))
         || parameters.contains(QStringLiteral("Temperature Sensor"))
         || parameters.contains(QStringLiteral("Rated Temperature"));
@@ -87,18 +74,13 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , equipmentModel(new EquipmentTreeModel(this))
     , diagramView(nullptr)
-    , m_sensorSimulator(new SensorTelemetrySimulator())
-    , m_telemetryTimer(new QTimer(this))
+    , m_telemetryService(new TelemetryService(std::make_unique<SensorTelemetrySimulator>(), this))
     , m_baseLayout(new SubstationLayout::Layout())
     , m_liveLayout(new SubstationLayout::Layout())
     , m_voltageScene(MonitoringChart::createScene(this))
     , m_currentScene(MonitoringChart::createScene(this))
     , m_temperatureScene(MonitoringChart::createScene(this))
     , m_hasLastSnapshot(false)
-    , m_breakerClosedState(true)
-    , m_manualTemperatureActive(false)
-    , m_manualTemperatureValue(68.0)
-    , m_temperatureRecoveryPhase(0.0)
 {
     ui->setupUi(this);
     diagramView = ui->graphicsView;
@@ -140,7 +122,6 @@ MainWindow::~MainWindow()
 {
     delete m_baseLayout;
     delete m_liveLayout;
-    delete m_sensorSimulator;
     delete ui;
 }
 
@@ -257,22 +238,20 @@ void MainWindow::connectInteractions()
 
     connect(ui->breakerStateCombo, &QComboBox::currentTextChanged, this, [this](const QString &text) {
         const bool shouldBeClosed = text != QStringLiteral("Open");
-        if (m_breakerClosedState == shouldBeClosed) {
+        if (m_telemetryService->breakerClosed() == shouldBeClosed) {
             return;
         }
 
-        m_breakerClosedState = shouldBeClosed;
         logInfo(QStringLiteral("User Action"),
-                QStringLiteral("Breaker CB-1 set to %1").arg(m_breakerClosedState ? QStringLiteral("Closed")
-                                                                                  : QStringLiteral("Open")));
-        refreshFromTelemetry();
+                QStringLiteral("Breaker CB-1 set to %1").arg(shouldBeClosed ? QStringLiteral("Closed")
+                                                                            : QStringLiteral("Open")));
+        m_telemetryService->setBreakerClosed(shouldBeClosed);
     });
     connect(ui->applyTemperatureButton, &QPushButton::clicked, this, [this]() {
-        m_manualTemperatureValue = ui->temperatureSpinBox->value();
-        m_manualTemperatureActive = true;
+        const double temperature = ui->temperatureSpinBox->value();
         logInfo(QStringLiteral("User Action"),
-                QStringLiteral("Transformer temperature set to %1").arg(formatC(m_manualTemperatureValue)));
-        refreshFromTelemetry();
+                QStringLiteral("Transformer temperature set to %1").arg(formatC(temperature)));
+        m_telemetryService->setManualTemperature(temperature);
     });
 
 }
@@ -303,7 +282,9 @@ void MainWindow::loadSubstationLayout()
     *m_baseLayout = layout;
     *m_liveLayout = layout;
 
-    refreshFromTelemetry();
+    if (m_hasLastSnapshot) {
+        processSnapshot(m_lastSnapshot);
+    }
 }
 
 void MainWindow::setupMonitoringCharts()
@@ -321,9 +302,43 @@ void MainWindow::setupMonitoringCharts()
 
 void MainWindow::startTelemetryMonitoring()
 {
-    connect(m_telemetryTimer, &QTimer::timeout, this, &MainWindow::refreshFromTelemetry);
-    m_telemetryTimer->start(1000);
-    refreshFromTelemetry();
+    connect(m_telemetryService, &TelemetryService::snapshotReady,
+            this, &MainWindow::processSnapshot);
+    connect(m_telemetryService, &TelemetryService::connectionStateChanged,
+            this, &MainWindow::updateConnectionState);
+    updateConnectionState(m_telemetryService->connectionState());
+    m_telemetryService->start(1000);
+}
+
+void MainWindow::updateConnectionState(TelemetryService::ConnectionState state)
+{
+    QString text;
+    QString backgroundColor;
+    QString foregroundColor;
+    switch (state) {
+    case TelemetryService::ConnectionState::Connected:
+        text = QStringLiteral("Connection: Connected");
+        backgroundColor = QStringLiteral("#1f6f43");
+        foregroundColor = QStringLiteral("#ffffff");
+        break;
+    case TelemetryService::ConnectionState::Connecting:
+        text = QStringLiteral("Connection: Connecting...");
+        backgroundColor = QStringLiteral("#8a651b");
+        foregroundColor = QStringLiteral("#ffffff");
+        break;
+    case TelemetryService::ConnectionState::Disconnected:
+        text = QStringLiteral("Connection: Disconnected");
+        backgroundColor = QStringLiteral("#8b2f36");
+        foregroundColor = QStringLiteral("#ffffff");
+        break;
+    }
+
+    ui->connectionStatusLabel->setText(text);
+    ui->connectionStatusLabel->setStyleSheet(
+        QStringLiteral("QLabel { border-radius: 6px; padding: 5px 10px; font-weight: 600; "
+                       "background-color: %1; color: %2; }")
+            .arg(backgroundColor, foregroundColor));
+    ui->connectionStatusLabel->setAccessibleName(text);
 }
 
 int MainWindow::selectedWindowSeconds() const
@@ -367,42 +382,10 @@ void MainWindow::emitTemperatureAlerts(const SensorSnapshot &snapshot)
     }
 }
 
-void MainWindow::refreshFromTelemetry()
+void MainWindow::processSnapshot(const SensorSnapshot &adjustedSnapshot)
 {
     if (!m_baseLayout || m_baseLayout->nodes.isEmpty()) {
         return;
-    }
-
-    const SensorSnapshot snapshot = m_sensorSimulator->nextSnapshot();
-    SensorSnapshot adjustedSnapshot = snapshot;
-    adjustedSnapshot.breakerClosed = m_breakerClosedState;
-
-    if (!adjustedSnapshot.breakerClosed) {
-        adjustedSnapshot.sourceCurrentA = 0.0;
-        adjustedSnapshot.transformerLoadPercent = 0.0;
-
-        const double referenceTemperature = m_hasLastSnapshot
-            ? m_lastSnapshot.transformerTemperatureC
-            : adjustedSnapshot.transformerTemperatureC;
-        adjustedSnapshot.transformerTemperatureC = cooledTemperature(referenceTemperature);
-        adjustedSnapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), adjustedSnapshot.transformerTemperatureC);
-    }
-
-    if (m_manualTemperatureActive) {
-        const double targetTemperature = adjustedSnapshot.transformerTemperatureC;
-        m_temperatureRecoveryPhase += 0.55;
-        const double distanceToTarget = qAbs(m_manualTemperatureValue - targetTemperature);
-        const double wobbleAmplitude = qMin(0.45, distanceToTarget * 0.18);
-        const double wobbleTarget = targetTemperature + qSin(m_temperatureRecoveryPhase) * wobbleAmplitude;
-        m_manualTemperatureValue = smoothApproach(m_manualTemperatureValue, wobbleTarget, 0.8);
-        adjustedSnapshot.transformerTemperatureC = m_manualTemperatureValue;
-        adjustedSnapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), adjustedSnapshot.transformerTemperatureC);
-
-        if (qAbs(m_manualTemperatureValue - targetTemperature) < 0.15) {
-            m_manualTemperatureValue = targetTemperature;
-            m_manualTemperatureActive = false;
-            m_temperatureRecoveryPhase = 0.0;
-        }
     }
 
     const QDateTime sampleTime = QDateTime::currentDateTime();
@@ -430,17 +413,19 @@ void MainWindow::refreshFromTelemetry()
     emitTemperatureAlerts(adjustedSnapshot);
 
     *m_liveLayout = *m_baseLayout;
-    applySnapshotToLayout(m_liveLayout, adjustedSnapshot);
+    TelemetryLayoutMapper::apply(m_liveLayout, adjustedSnapshot);
     PowerFlowCalculator::annotateLayout(m_liveLayout, adjustedSnapshot.temperatureBySensor);
 
     equipmentModel->updateLayout(*m_liveLayout);
     if (diagramView->substationLayout().nodes.isEmpty()) {
         diagramView->setLayout(*m_liveLayout);
     }
-    if (!m_selectedEquipmentName.isEmpty()) {
+    if (m_selectedEquipmentName.isEmpty()) {
+        setupModelAndViews();
+    } else {
         diagramView->selectEquipment(m_selectedEquipmentName);
+        restoreSelection();
     }
-    restoreSelection();
 
     if (!adjustedSnapshot.notes.isEmpty()) {
         for (const QString &note : adjustedSnapshot.notes) {
@@ -485,41 +470,6 @@ void MainWindow::refreshMonitoringCharts()
                             QColor(0xD9, 0x2D, 0x20),
                             DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
                             windowSeconds);
-}
-
-void MainWindow::applySnapshotToLayout(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot)
-{
-    if (!layout) {
-        return;
-    }
-
-    for (SubstationLayout::NodeSpec &node : layout->nodes) {
-        if (node.id == QStringLiteral("Line-1")) {
-            node.parameters[QStringLiteral("Voltage")] = formatKv(snapshot.sourceVoltageKv);
-            node.parameters[QStringLiteral("Current")] = formatA(snapshot.sourceCurrentA);
-            node.status = QStringLiteral("Ready");
-        } else if (node.id == QStringLiteral("CB-1")) {
-            node.status = snapshot.breakerClosed ? QStringLiteral("Closed") : QStringLiteral("Open");
-        } else if (node.id == QStringLiteral("Bus-1")) {
-            node.status = snapshot.breakerClosed ? QStringLiteral("Energized") : QStringLiteral("De-energized");
-            node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? formatKv(snapshot.sourceVoltageKv) : QStringLiteral("0.0 kV");
-            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
-        } else if (node.id == QStringLiteral("TR-1")) {
-            node.parameters[QStringLiteral("Temperature")] = formatC(snapshot.transformerTemperatureC);
-            node.parameters[QStringLiteral("Load")] = QStringLiteral("%1%").arg(QString::number(snapshot.transformerLoadPercent, 'f', 1));
-            node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? QStringLiteral("12.0 kV") : QStringLiteral("0.0 kV");
-            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
-            node.status = snapshot.breakerClosed ? QStringLiteral("Loading") : QStringLiteral("Cooling");
-        } else if (node.id == QStringLiteral("Bus-2")) {
-            node.status = snapshot.breakerClosed ? QStringLiteral("Energized") : QStringLiteral("De-energized");
-            node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? QStringLiteral("12.0 kV") : QStringLiteral("0.0 kV");
-            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
-        } else if (node.id == QStringLiteral("Line-2")) {
-            node.status = snapshot.breakerClosed ? QStringLiteral("Ready") : QStringLiteral("De-energized");
-            node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? QStringLiteral("12.0 kV") : QStringLiteral("0.0 kV");
-            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
-        }
-    }
 }
 
 void MainWindow::rememberCurrentSelection(const QModelIndex &index)
@@ -594,8 +544,8 @@ void MainWindow::updateBreakerControls(Equipment *equipment)
     }
 
     const QSignalBlocker blocker(ui->breakerStateCombo);
-    ui->breakerStateCombo->setCurrentText(m_breakerClosedState ? QStringLiteral("Closed")
-                                                               : QStringLiteral("Open"));
+    ui->breakerStateCombo->setCurrentText(m_telemetryService->breakerClosed() ? QStringLiteral("Closed")
+                                                                              : QStringLiteral("Open"));
 }
 
 void MainWindow::updateTemperatureControls(Equipment *equipment)
@@ -614,9 +564,9 @@ void MainWindow::updateTemperatureControls(Equipment *equipment)
     }
 
     const QSignalBlocker blocker(ui->temperatureSpinBox);
-    const double displayedTemperature = m_manualTemperatureActive
-        ? m_manualTemperatureValue
-        : (m_hasLastSnapshot ? m_lastSnapshot.transformerTemperatureC : 68.0);
+    const double displayedTemperature = m_hasLastSnapshot
+        ? m_telemetryService->displayedTemperature()
+        : 68.0;
     ui->temperatureSpinBox->setValue(displayedTemperature);
 }
 
