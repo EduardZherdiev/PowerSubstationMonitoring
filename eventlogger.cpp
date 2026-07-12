@@ -1,4 +1,5 @@
 #include "eventlogger.h"
+#include "historypersistence.h"
 
 #include <QApplication>
 
@@ -13,6 +14,7 @@ EventLogger *EventLogger::instance(QObject *parent)
 
 EventLogger::EventLogger(QObject *parent)
     : QObject{parent}
+    , m_records(HistoryPersistence::loadEvents())
 {}
 
 void EventLogger::info(const QString &source, const QString &message)
@@ -55,7 +57,9 @@ QVector<EventRecord> EventLogger::records(const QDateTime &from,
 
 void EventLogger::appendRecord(EventLevel level, const QString &source, const QString &message)
 {
-    m_records.append(EventRecord{QDateTime::currentDateTime(), level, source, message});
+    const EventRecord record{QDateTime::currentDateTime(), level, source, message};
+    m_records.append(record);
+    HistoryPersistence::appendEvent(record);
 }
 
 void logInfo(const QString &source, const QString &message)

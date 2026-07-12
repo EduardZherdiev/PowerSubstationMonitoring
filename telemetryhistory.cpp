@@ -1,6 +1,8 @@
 #include "telemetryhistory.h"
+#include "historypersistence.h"
 
 #include <QHash>
+#include <QSet>
 #include <QtMath>
 #include <qtimezone.h>
 
@@ -18,6 +20,22 @@ QHash<int, QVector<TelemetrySample>> &seriesStorage()
 int seriesKey(TelemetryHistory::SeriesKind kind)
 {
     return static_cast<int>(kind);
+}
+
+void ensureSeriesLoaded(TelemetryHistory::SeriesKind kind)
+{
+    static QSet<int> loadedSeries;
+    const int key = seriesKey(kind);
+    if (loadedSeries.contains(key)) {
+        return;
+    }
+
+    QVector<TelemetrySample> samples = HistoryPersistence::loadTelemetry(kind);
+    std::sort(samples.begin(), samples.end(), [](const TelemetrySample &left, const TelemetrySample &right) {
+        return left.timestamp < right.timestamp;
+    });
+    seriesStorage().insert(key, samples);
+    loadedSeries.insert(key);
 }
 
 int sampleStepSeconds(int windowSeconds)
@@ -107,8 +125,10 @@ void appendSample(SeriesKind kind, const TelemetrySample &sample)
         return;
     }
 
+    ensureSeriesLoaded(kind);
     QVector<TelemetrySample> &samples = seriesStorage()[seriesKey(kind)];
     samples.append(sample);
+    HistoryPersistence::appendTelemetry(kind, sample);
 
     const QDateTime cutoff = sample.timestamp.addDays(-31);
     const auto firstRetained = std::lower_bound(samples.cbegin(), samples.cend(), cutoff,
@@ -122,6 +142,7 @@ void appendSample(SeriesKind kind, const TelemetrySample &sample)
 
 QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int windowSeconds)
 {
+    ensureSeriesLoaded(kind);
     QVector<TelemetrySample> filtered = generatedSeries(kind, endTime, windowSeconds);
     if (!endTime.isValid() || windowSeconds <= 0) {
         return filtered;

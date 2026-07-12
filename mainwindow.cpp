@@ -183,6 +183,12 @@ void MainWindow::connectInteractions()
     connect(EventLogger::instance(), &EventLogger::eventLogged, this, [this](EventLevel level, const QString &source, const QString &message) {
         appendEvent(level, source, message);
     });
+    const QVector<EventRecord> storedEvents = EventLogger::instance()->records(QDateTime(), QDateTime(), false);
+    const int firstVisibleEvent = qMax(0, storedEvents.size() - 1000);
+    for (int index = firstVisibleEvent; index < storedEvents.size(); ++index) {
+        const EventRecord &record = storedEvents.at(index);
+        appendEvent(record.level, record.source, record.message, record.timestamp);
+    }
 
     connect(ui->equipmentTreeView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, [this](const QModelIndex &current, const QModelIndex &) {
@@ -570,7 +576,10 @@ void MainWindow::updateTemperatureControls(Equipment *equipment)
     ui->temperatureSpinBox->setValue(displayedTemperature);
 }
 
-void MainWindow::appendEvent(EventLevel level, const QString &source, const QString &message)
+void MainWindow::appendEvent(EventLevel level,
+                             const QString &source,
+                             const QString &message,
+                             const QDateTime &timestamp)
 {
     if (!ui->eventLogTable) {
         return;
@@ -593,7 +602,8 @@ void MainWindow::appendEvent(EventLevel level, const QString &source, const QStr
             levelItem->setForeground(Qt::red);
             break;
     }
-    QTableWidgetItem *timeItem = new QTableWidgetItem(QDateTime::currentDateTime().toString("HH:mm:ss"));
+    const QDateTime eventTime = timestamp.isValid() ? timestamp : QDateTime::currentDateTime();
+    QTableWidgetItem *timeItem = new QTableWidgetItem(eventTime.toString("yyyy-MM-dd HH:mm:ss"));
     ui->eventLogTable->setItem(row, 1, levelItem);
     ui->eventLogTable->setItem(row, 0, timeItem);
     ui->eventLogTable->setItem(row, 2, new QTableWidgetItem(source));
