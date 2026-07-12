@@ -20,6 +20,18 @@ QString formatC(double value)
     return QStringLiteral("%1 C").arg(QString::number(value, 'f', 1));
 }
 
+void removeLiveMeasurements(SubstationLayout::NodeSpec *node)
+{
+    if (!node) {
+        return;
+    }
+
+    node->parameters.remove(QStringLiteral("Voltage"));
+    node->parameters.remove(QStringLiteral("Current"));
+    node->parameters.remove(QStringLiteral("Temperature"));
+    node->parameters.remove(QStringLiteral("Load"));
+}
+
 } // namespace
 
 namespace TelemetryLayoutMapper {
@@ -31,6 +43,8 @@ void apply(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot)
     }
 
     for (SubstationLayout::NodeSpec &node : layout->nodes) {
+        removeLiveMeasurements(&node);
+
         if (node.id == QStringLiteral("Line-1")) {
             node.parameters[QStringLiteral("Voltage")] = formatKv(snapshot.sourceVoltageKv);
             node.parameters[QStringLiteral("Current")] = formatA(snapshot.sourceCurrentA);
@@ -40,7 +54,6 @@ void apply(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot)
         } else if (node.id == QStringLiteral("Bus-1")) {
             node.status = snapshot.breakerClosed ? QStringLiteral("Energized") : QStringLiteral("De-energized");
             node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? formatKv(snapshot.sourceVoltageKv) : QStringLiteral("0.0 kV");
-            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
         } else if (node.id == QStringLiteral("TR-1")) {
             node.parameters[QStringLiteral("Temperature")] = formatC(snapshot.transformerTemperatureC);
             node.parameters[QStringLiteral("Load")] = QStringLiteral("%1%").arg(QString::number(snapshot.transformerLoadPercent, 'f', 1));
@@ -50,7 +63,6 @@ void apply(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot)
         } else if (node.id == QStringLiteral("Bus-2")) {
             node.status = snapshot.breakerClosed ? QStringLiteral("Energized") : QStringLiteral("De-energized");
             node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? QStringLiteral("12.0 kV") : QStringLiteral("0.0 kV");
-            node.parameters[QStringLiteral("Current")] = snapshot.breakerClosed ? formatA(snapshot.sourceCurrentA) : QStringLiteral("0.0 A");
         } else if (node.id == QStringLiteral("Line-2")) {
             node.status = snapshot.breakerClosed ? QStringLiteral("Ready") : QStringLiteral("De-energized");
             node.parameters[QStringLiteral("Voltage")] = snapshot.breakerClosed ? QStringLiteral("12.0 kV") : QStringLiteral("0.0 kV");

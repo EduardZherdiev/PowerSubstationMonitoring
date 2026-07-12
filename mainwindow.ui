@@ -38,6 +38,9 @@
         <height>30</height>
        </size>
       </property>
+      <property name="toolTip">
+       <string>Current telemetry source connection state</string>
+      </property>
       <property name="styleSheet">
        <string notr="true">QLabel {
     border-radius: 6px;
@@ -47,9 +50,6 @@
       </property>
       <property name="text">
        <string>Connection: Disconnected</string>
-      </property>
-      <property name="toolTip">
-       <string>Current telemetry source connection state</string>
       </property>
      </widget>
     </item>
@@ -83,7 +83,7 @@
       </widget>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="schema">
         <attribute name="title">
@@ -235,7 +235,14 @@
             </widget>
            </item>
            <item>
-            <widget class="QGraphicsView" name="voltage"/>
+            <widget class="QGraphicsView" name="voltage">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>220</height>
+              </size>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QLabel" name="label_2">
@@ -257,7 +264,14 @@
           </widget>
          </item>
          <item>
-          <widget class="QGraphicsView" name="tempreture"/>
+          <widget class="QGraphicsView" name="tempreture">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>200</height>
+            </size>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -462,6 +476,9 @@
     </item>
     <item>
      <widget class="QTableWidget" name="eventLogTable">
+      <property name="editTriggers">
+       <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+      </property>
       <property name="alternatingRowColors">
        <bool>true</bool>
       </property>
@@ -470,9 +487,6 @@
       </property>
       <property name="selectionBehavior">
        <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
-      </property>
-      <property name="editTriggers">
-       <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
       </property>
       <property name="rowCount">
        <number>0</number>

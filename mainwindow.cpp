@@ -25,6 +25,7 @@
 #include <QPalette>
 #include <QItemSelectionModel>
 #include <QList>
+#include <QPair>
 #include <QStringList>
 #include <QSplitter>
 #include <QResizeEvent>
@@ -35,6 +36,7 @@
 #include <QSizePolicy>
 #include <QTableWidget>
 #include <QTableWidgetItem>
+#include <QVector>
 #include <QDir>
 #include <memory>
 
@@ -62,9 +64,65 @@ bool equipmentSupportsTemperatureControl(const Equipment *equipment)
     }
 
     const QMap<QString, QString> &parameters = equipment->parameters();
-    return parameters.contains(QStringLiteral("Temperature"))
+    return equipment->type().contains(QStringLiteral("Transformer"), Qt::CaseInsensitive)
+        || equipment->name().startsWith(QStringLiteral("TR-"), Qt::CaseInsensitive)
         || parameters.contains(QStringLiteral("Temperature Sensor"))
         || parameters.contains(QStringLiteral("Rated Temperature"));
+}
+
+bool equipmentSupportsVoltage(const Equipment *equipment)
+{
+    if (!equipment) {
+        return false;
+    }
+
+    const QString type = equipment->type();
+    return type.contains(QStringLiteral("Line"), Qt::CaseInsensitive)
+        || type.contains(QStringLiteral("Transformer"), Qt::CaseInsensitive)
+        || type.contains(QStringLiteral("Busbar"), Qt::CaseInsensitive);
+}
+
+bool equipmentSupportsCurrent(const Equipment *equipment)
+{
+    if (!equipment) {
+        return false;
+    }
+
+    const QString type = equipment->type();
+    return type.contains(QStringLiteral("Line"), Qt::CaseInsensitive)
+        || type.contains(QStringLiteral("Transformer"), Qt::CaseInsensitive);
+}
+
+bool isInternalParameter(const QString &key)
+{
+    return key == QStringLiteral("Calculated Voltage")
+        || key == QStringLiteral("Calculated Current")
+        || key == QStringLiteral("Energized")
+        || key == QStringLiteral("Upstream")
+        || key == QStringLiteral("Flow Note");
+}
+
+bool shouldDisplayParameter(const Equipment *equipment, const QString &key)
+{
+    if (isInternalParameter(key)) {
+        return false;
+    }
+
+    if (key == QStringLiteral("Temperature")
+        || key == QStringLiteral("Temperature Sensor")
+        || key == QStringLiteral("Rated Temperature")) {
+        return equipmentSupportsTemperatureControl(equipment);
+    }
+
+    if (key == QStringLiteral("Voltage")) {
+        return equipmentSupportsVoltage(equipment);
+    }
+
+    if (key == QStringLiteral("Current")) {
+        return equipmentSupportsCurrent(equipment);
+    }
+
+    return true;
 }
 
 } // namespace
@@ -452,30 +510,58 @@ void MainWindow::processSnapshot(const SensorSnapshot &adjustedSnapshot)
 
 void MainWindow::refreshMonitoringCharts()
 {
+    Equipment *selectedEquipment = findEquipmentByName(m_selectedEquipmentName);
+    if (selectedEquipment) {
+        updateMonitoringVisibility(selectedEquipment);
+    }
+
     const int windowSeconds = selectedWindowSeconds();
     const QDateTime endTime = selectedEndTime();
 
-    MonitoringChart::render(m_voltageScene,
-                            TelemetryHistory::series(TelemetryHistory::SeriesKind::Voltage, endTime, windowSeconds),
-                            QStringLiteral("Voltage"),
-                            QStringLiteral("kV"),
-                            QColor(0x56, 0xC2, 0xFF),
-                            DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
-                            windowSeconds);
-    MonitoringChart::render(m_currentScene,
-                            TelemetryHistory::series(TelemetryHistory::SeriesKind::Current, endTime, windowSeconds),
-                            QStringLiteral("Current"),
-                            QStringLiteral("A"),
-                            QColor(0xFF, 0xB8, 0x6B),
-                            DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
-                            windowSeconds);
-    MonitoringChart::render(m_temperatureScene,
-                            TelemetryHistory::series(TelemetryHistory::SeriesKind::Temperature, endTime, windowSeconds),
-                            QStringLiteral("Temperature"),
-                            QStringLiteral("C"),
-                            QColor(0xD9, 0x2D, 0x20),
-                            DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
-                            windowSeconds);
+    if (!ui->voltage->isHidden()) {
+        MonitoringChart::render(m_voltageScene,
+                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Voltage, endTime, windowSeconds),
+                                QStringLiteral("Voltage"),
+                                QStringLiteral("kV"),
+                                QColor(0x56, 0xC2, 0xFF),
+                                DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
+                                windowSeconds);
+    }
+
+    if (!ui->current->isHidden()) {
+        MonitoringChart::render(m_currentScene,
+                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Current, endTime, windowSeconds),
+                                QStringLiteral("Current"),
+                                QStringLiteral("A"),
+                                QColor(0xFF, 0xB8, 0x6B),
+                                DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
+                                windowSeconds);
+    }
+
+    if (!ui->tempreture->isHidden()) {
+        MonitoringChart::render(m_temperatureScene,
+                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Temperature, endTime, windowSeconds),
+                                QStringLiteral("Temperature"),
+                                QStringLiteral("C"),
+                                QColor(0xD9, 0x2D, 0x20),
+                                DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
+                                windowSeconds);
+    }
+}
+
+void MainWindow::updateMonitoringVisibility(Equipment *equipment)
+{
+    const bool showVoltage = equipmentSupportsVoltage(equipment);
+    const bool showCurrent = equipmentSupportsCurrent(equipment);
+    const bool showTemperature = equipmentSupportsTemperatureControl(equipment);
+
+    ui->label->setVisible(showVoltage);
+    ui->voltage->setVisible(showVoltage);
+    ui->label_2->setVisible(showCurrent);
+    ui->current->setVisible(showCurrent);
+    ui->label_3->setVisible(showTemperature);
+    ui->tempreture->setVisible(showTemperature);
+    ui->groupBox->setVisible(showVoltage || showCurrent || showTemperature);
 }
 
 void MainWindow::rememberCurrentSelection(const QModelIndex &index)
@@ -520,14 +606,24 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     ui->descriptionValueLabel->setText(equipment->description().isEmpty() ? "-" : equipment->description());
     updateBreakerControls(equipment);
     updateTemperatureControls(equipment);
+    updateMonitoringVisibility(equipment);
 
     const auto parameters = equipment->parameters();
+    QVector<QPair<QString, QString>> visibleParameters;
+    visibleParameters.reserve(parameters.size());
+    for (auto it = parameters.constBegin(); it != parameters.constEnd(); ++it) {
+        if (shouldDisplayParameter(equipment, it.key())) {
+            visibleParameters.append(qMakePair(it.key(), it.value()));
+        }
+    }
+
     ui->parametersTable->clearContents();
-    ui->parametersTable->setRowCount(parameters.size());
+    ui->parametersTable->setRowCount(visibleParameters.size());
     int row = 0;
-    for (auto it = parameters.constBegin(); it != parameters.constEnd(); ++it, ++row) {
-        ui->parametersTable->setItem(row, 0, new QTableWidgetItem(it.key()));
-        ui->parametersTable->setItem(row, 1, new QTableWidgetItem(it.value()));
+    for (const auto &parameter : visibleParameters) {
+        ui->parametersTable->setItem(row, 0, new QTableWidgetItem(parameter.first));
+        ui->parametersTable->setItem(row, 1, new QTableWidgetItem(parameter.second));
+        ++row;
     }
 
     if (diagramView) {

@@ -44,6 +44,7 @@ private:
     void updateConnectionState(TelemetryService::ConnectionState state);
     void setupMonitoringCharts();
     void refreshMonitoringCharts();
+    void updateMonitoringVisibility(Equipment *equipment);
     void rememberCurrentSelection(const QModelIndex &index);
     void restoreSelection();
     void displayEquipment(Equipment *equipment, bool fromUserAction);
