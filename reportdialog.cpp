@@ -3,6 +3,7 @@
 
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QPrinter>
 #include <QRegularExpression>
@@ -208,6 +209,16 @@ void ReportDialog::exportTxt()
 
     QTextStream stream(&file);
     stream << reportText(selectedRecords());
+    stream.flush();
+    if (stream.status() != QTextStream::Ok) {
+        QMessageBox::warning(this, QStringLiteral("Export failed"), QStringLiteral("Could not write TXT report."));
+        return;
+    }
+
+    file.close();
+    QMessageBox::information(this,
+                             QStringLiteral("Export completed"),
+                             QStringLiteral("TXT report was successfully saved to:\n%1").arg(filePath));
 }
 
 void ReportDialog::exportPdf()
@@ -228,4 +239,14 @@ void ReportDialog::exportPdf()
     QTextDocument document;
     document.setPlainText(reportText(selectedRecords()));
     document.print(&printer);
+
+    const QFileInfo outputFile(filePath);
+    if (printer.printerState() == QPrinter::Error || !outputFile.exists() || outputFile.size() == 0) {
+        QMessageBox::warning(this, QStringLiteral("Export failed"), QStringLiteral("Could not write PDF report."));
+        return;
+    }
+
+    QMessageBox::information(this,
+                             QStringLiteral("Export completed"),
+                             QStringLiteral("PDF report was successfully saved to:\n%1").arg(filePath));
 }
