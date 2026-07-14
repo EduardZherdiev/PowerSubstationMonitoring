@@ -4,6 +4,7 @@
 #include "eventlogger.h"
 
 #include <QDialog>
+#include <QEvent>
 
 namespace Ui {
 class ReportDialog;
@@ -16,6 +17,9 @@ class ReportDialog : public QDialog
 public:
     explicit ReportDialog(QWidget *parent = nullptr);
     ~ReportDialog();
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private:
     QVector<EventRecord> selectedRecords() const;

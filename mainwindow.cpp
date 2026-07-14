@@ -20,6 +20,7 @@
 #include <QHeaderView>
 #include <QApplication>
 #include <QClipboard>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QGraphicsScene>
 #include <QPalette>
@@ -44,17 +45,95 @@ namespace {
 
 QString formatKv(double value)
 {
-    return QStringLiteral("%1 kV").arg(QString::number(value, 'f', 1));
+    return QCoreApplication::translate("MainWindow", "%1 kV").arg(QString::number(value, 'f', 1));
 }
 
 QString formatA(double value)
 {
-    return QStringLiteral("%1 A").arg(QString::number(value, 'f', 1));
+    return QCoreApplication::translate("MainWindow", "%1 A").arg(QString::number(value, 'f', 1));
 }
 
 QString formatC(double value)
 {
-    return QStringLiteral("%1 C").arg(QString::number(value, 'f', 1));
+    return QCoreApplication::translate("MainWindow", "%1 C").arg(QString::number(value, 'f', 1));
+}
+
+QString translatedEquipmentType(const QString &type)
+{
+    if (type == QStringLiteral("Transmission Line")) {
+        return QCoreApplication::translate("Equipment", "Transmission Line");
+    }
+    if (type == QStringLiteral("Circuit Breaker")) {
+        return QCoreApplication::translate("Equipment", "Circuit Breaker");
+    }
+    if (type == QStringLiteral("Transformer")) {
+        return QCoreApplication::translate("Equipment", "Transformer");
+    }
+    if (type == QStringLiteral("Busbar")) {
+        return QCoreApplication::translate("Equipment", "Busbar");
+    }
+    return type;
+}
+
+QString translatedEquipmentStatus(const QString &status)
+{
+    if (status == QStringLiteral("Ready")) {
+        return QCoreApplication::translate("Equipment", "Ready");
+    }
+    if (status == QStringLiteral("Closed")) {
+        return QCoreApplication::translate("Equipment", "Closed");
+    }
+    if (status == QStringLiteral("Open")) {
+        return QCoreApplication::translate("Equipment", "Open");
+    }
+    if (status == QStringLiteral("Energized")) {
+        return QCoreApplication::translate("Equipment", "Energized");
+    }
+    if (status == QStringLiteral("De-energized")) {
+        return QCoreApplication::translate("Equipment", "De-energized");
+    }
+    if (status == QStringLiteral("Loading")) {
+        return QCoreApplication::translate("Equipment", "Loading");
+    }
+    if (status == QStringLiteral("Cooling")) {
+        return QCoreApplication::translate("Equipment", "Cooling");
+    }
+    return status;
+}
+
+QString translatedParameterName(const QString &name)
+{
+    if (name == QStringLiteral("Voltage")) {
+        return QCoreApplication::translate("EquipmentParameter", "Voltage");
+    }
+    if (name == QStringLiteral("Current")) {
+        return QCoreApplication::translate("EquipmentParameter", "Current");
+    }
+    if (name == QStringLiteral("Temperature")) {
+        return QCoreApplication::translate("EquipmentParameter", "Temperature");
+    }
+    if (name == QStringLiteral("Temperature Sensor")) {
+        return QCoreApplication::translate("EquipmentParameter", "Temperature Sensor");
+    }
+    if (name == QStringLiteral("Rated Temperature")) {
+        return QCoreApplication::translate("EquipmentParameter", "Rated Temperature");
+    }
+    if (name == QStringLiteral("Rated Current")) {
+        return QCoreApplication::translate("EquipmentParameter", "Rated Current");
+    }
+    if (name == QStringLiteral("Trip Count")) {
+        return QCoreApplication::translate("EquipmentParameter", "Trip Count");
+    }
+    if (name == QStringLiteral("Transformation Ratio")) {
+        return QCoreApplication::translate("EquipmentParameter", "Transformation Ratio");
+    }
+    if (name == QStringLiteral("MVA")) {
+        return QCoreApplication::translate("EquipmentParameter", "MVA");
+    }
+    if (name == QStringLiteral("Load")) {
+        return QCoreApplication::translate("EquipmentParameter", "Load");
+    }
+    return name;
 }
 
 bool equipmentSupportsTemperatureControl(const Equipment *equipment)
@@ -183,6 +262,22 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        equipmentModel->retranslate();
+        ui->temperatureSpinBox->setSuffix(tr(" C"));
+
+        updateConnectionState(m_telemetryService->connectionState());
+        if (Equipment *equipment = findEquipmentByName(m_selectedEquipmentName)) {
+            displayEquipment(equipment, false);
+        }
+        refreshMonitoringCharts();
+    }
+    QMainWindow::changeEvent(event);
+}
+
 void MainWindow::setupModelAndViews()
 {
     const QModelIndex initialIndex = equipmentModel->index(0, 0);
@@ -196,7 +291,7 @@ void MainWindow::setupModelAndViews()
     }
 
     displayEquipment(equipmentModel->equipmentForIndex(initialIndex), false);
-    statusBar()->showMessage("Monitoring dashboard ready", 3000);
+    statusBar()->showMessage(tr("Monitoring dashboard ready"), 3000);
 }
 
 void MainWindow::configureParameterPanel()
@@ -206,14 +301,18 @@ void MainWindow::configureParameterPanel()
     ui->parametersTable->setColumnWidth(0, 130);
     ui->breakerControlLabel->setVisible(false);
     ui->breakerStateCombo->setVisible(false);
-    ui->breakerStateCombo->setCurrentText(QStringLiteral("Closed"));
+    ui->breakerStateCombo->setCurrentText(tr("Closed"));
     ui->temperatureControlLabel->setVisible(false);
     ui->temperatureSpinBox->setVisible(false);
     ui->applyTemperatureButton->setVisible(false);
-    ui->temperatureSpinBox->setSuffix(QStringLiteral(" C"));
+    ui->temperatureSpinBox->setSuffix(tr(" C"));
+    ui->periodComboBox->setItemData(0, 60);
+    ui->periodComboBox->setItemData(1, 3600);
+    ui->periodComboBox->setItemData(2, 24 * 3600);
     ui->temperatureSpinBox->setRange(-40.0, 150.0);
     ui->temperatureSpinBox->setDecimals(1);
     ui->temperatureSpinBox->setSingleStep(0.5);
+    ui->eventLogTable->setFixedHeight(245);
 
     auto *copyShortcut = new QShortcut(QKeySequence::Copy, ui->eventLogTable);
     connect(copyShortcut, &QShortcut::activated, this, [this]() {
@@ -307,14 +406,13 @@ void MainWindow::connectInteractions()
         }
 
         logInfo(QStringLiteral("User Action"),
-                QStringLiteral("Breaker CB-1 set to %1").arg(shouldBeClosed ? QStringLiteral("Closed")
-                                                                            : QStringLiteral("Open")));
+                tr("Breaker CB-1 set to %1").arg(shouldBeClosed ? tr("Closed") : tr("Open")));
         m_telemetryService->setBreakerClosed(shouldBeClosed);
     });
     connect(ui->applyTemperatureButton, &QPushButton::clicked, this, [this]() {
         const double temperature = ui->temperatureSpinBox->value();
         logInfo(QStringLiteral("User Action"),
-                QStringLiteral("Transformer temperature set to %1").arg(formatC(temperature)));
+                tr("Transformer temperature set to %1").arg(formatC(temperature)));
         m_telemetryService->setManualTemperature(temperature);
     });
 
@@ -355,13 +453,14 @@ void MainWindow::setupMonitoringCharts()
 {
     ui->voltage->setScene(m_voltageScene);
     ui->current->setScene(m_currentScene);
-    ui->tempreture->setScene(m_temperatureScene);
+    ui->temperature->setScene(m_temperatureScene);
     ui->voltage->setRenderHint(QPainter::Antialiasing, true);
     ui->current->setRenderHint(QPainter::Antialiasing, true);
-    ui->tempreture->setRenderHint(QPainter::Antialiasing, true);
+    ui->temperature->setRenderHint(QPainter::Antialiasing, true);
     ui->voltage->setAlignment(Qt::AlignCenter);
     ui->current->setAlignment(Qt::AlignCenter);
-    ui->tempreture->setAlignment(Qt::AlignCenter);
+    ui->temperature->setAlignment(Qt::AlignCenter);
+    ui->current->setMinimumHeight(220);
 }
 
 void MainWindow::startTelemetryMonitoring()
@@ -381,17 +480,17 @@ void MainWindow::updateConnectionState(TelemetryService::ConnectionState state)
     QString foregroundColor;
     switch (state) {
     case TelemetryService::ConnectionState::Connected:
-        text = QStringLiteral("Connection: Connected");
+        text = tr("Connection: Connected");
         backgroundColor = QStringLiteral("#1f6f43");
         foregroundColor = QStringLiteral("#ffffff");
         break;
     case TelemetryService::ConnectionState::Connecting:
-        text = QStringLiteral("Connection: Connecting...");
+        text = tr("Connection: Connecting...");
         backgroundColor = QStringLiteral("#8a651b");
         foregroundColor = QStringLiteral("#ffffff");
         break;
     case TelemetryService::ConnectionState::Disconnected:
-        text = QStringLiteral("Connection: Disconnected");
+        text = tr("Connection: Disconnected");
         backgroundColor = QStringLiteral("#8b2f36");
         foregroundColor = QStringLiteral("#ffffff");
         break;
@@ -415,14 +514,7 @@ int MainWindow::selectedWindowSeconds() const
         return 60;
     }
 
-    const QString text = ui->periodComboBox->currentText();
-    if (text == QStringLiteral("Last minute")) {
-        return 60;
-    }
-    if (text == QStringLiteral("Last hour")) {
-        return 3600;
-    }
-    return 24 * 3600;
+    return ui->periodComboBox->currentData().toInt();
 }
 
 QDateTime MainWindow::selectedEndTime() const
@@ -440,9 +532,9 @@ void MainWindow::emitTemperatureAlerts(const SensorSnapshot &snapshot)
     constexpr double criticalThreshold = 85.0;
     const double current = snapshot.transformerTemperatureC;
     if (current >= criticalThreshold) {
-        logCritical(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature critical: %1").arg(formatC(current)));
+        logCritical(QStringLiteral("Telemetry"), tr("Transformer temperature critical: %1").arg(formatC(current)));
     } else if (current >= warningThreshold) {
-        logWarning(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature warning: %1").arg(formatC(current)));
+        logWarning(QStringLiteral("Telemetry"), tr("Transformer temperature warning: %1").arg(formatC(current)));
     }
 }
 
@@ -462,15 +554,15 @@ void MainWindow::processSnapshot(const SensorSnapshot &adjustedSnapshot)
 
     if (m_hasLastSnapshot) {
         if (m_lastSnapshot.breakerClosed != adjustedSnapshot.breakerClosed) {
-            logWarning(QStringLiteral("Telemetry"), adjustedSnapshot.breakerClosed ? QStringLiteral("CB-1 closed") : QStringLiteral("CB-1 opened"));
+            logWarning(QStringLiteral("Telemetry"), adjustedSnapshot.breakerClosed ? tr("CB-1 closed") : tr("CB-1 opened"));
         }
 
         if (adjustedSnapshot.sourceVoltageKv > m_lastSnapshot.sourceVoltageKv + 2.0 || adjustedSnapshot.sourceVoltageKv < m_lastSnapshot.sourceVoltageKv - 2.0) {
-            logInfo(QStringLiteral("Telemetry"), QStringLiteral("Source voltage changed to %1").arg(formatKv(adjustedSnapshot.sourceVoltageKv)));
+            logInfo(QStringLiteral("Telemetry"), tr("Source voltage changed to %1").arg(formatKv(adjustedSnapshot.sourceVoltageKv)));
         }
 
         if (adjustedSnapshot.transformerTemperatureC > m_lastSnapshot.transformerTemperatureC + 1.5 || adjustedSnapshot.transformerTemperatureC < m_lastSnapshot.transformerTemperatureC - 1.5) {
-            logInfo(QStringLiteral("Telemetry"), QStringLiteral("Transformer temperature changed to %1").arg(formatC(adjustedSnapshot.transformerTemperatureC)));
+            logInfo(QStringLiteral("Telemetry"), tr("Transformer temperature changed to %1").arg(formatC(adjustedSnapshot.transformerTemperatureC)));
         }
     }
 
@@ -499,7 +591,7 @@ void MainWindow::processSnapshot(const SensorSnapshot &adjustedSnapshot)
 
     refreshMonitoringCharts();
 
-    statusBar()->showMessage(QStringLiteral("Live: %1 | %2 | %3")
+    statusBar()->showMessage(tr("Live: %1 | %2 | %3")
                                  .arg(formatKv(adjustedSnapshot.sourceVoltageKv),
                                       formatA(adjustedSnapshot.sourceCurrentA),
                                       formatC(adjustedSnapshot.transformerTemperatureC)),
@@ -521,7 +613,7 @@ void MainWindow::refreshMonitoringCharts()
     if (!ui->voltage->isHidden()) {
         MonitoringChart::render(m_voltageScene,
                                 TelemetryHistory::series(TelemetryHistory::SeriesKind::Voltage, endTime, windowSeconds),
-                                QStringLiteral("Voltage"),
+                                tr("Voltage"),
                                 QStringLiteral("kV"),
                                 QColor(0x56, 0xC2, 0xFF),
                                 DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
@@ -531,17 +623,17 @@ void MainWindow::refreshMonitoringCharts()
     if (!ui->current->isHidden()) {
         MonitoringChart::render(m_currentScene,
                                 TelemetryHistory::series(TelemetryHistory::SeriesKind::Current, endTime, windowSeconds),
-                                QStringLiteral("Current"),
+                                tr("Current"),
                                 QStringLiteral("A"),
                                 QColor(0xFF, 0xB8, 0x6B),
                                 DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
                                 windowSeconds);
     }
 
-    if (!ui->tempreture->isHidden()) {
+    if (!ui->temperature->isHidden()) {
         MonitoringChart::render(m_temperatureScene,
                                 TelemetryHistory::series(TelemetryHistory::SeriesKind::Temperature, endTime, windowSeconds),
-                                QStringLiteral("Temperature"),
+                                tr("Temperature"),
                                 QStringLiteral("C"),
                                 QColor(0xD9, 0x2D, 0x20),
                                 DiagramTheme::color(DiagramTheme::ColorRole::PanelText),
@@ -560,7 +652,7 @@ void MainWindow::updateMonitoringVisibility(Equipment *equipment)
     ui->label_2->setVisible(showCurrent);
     ui->current->setVisible(showCurrent);
     ui->label_3->setVisible(showTemperature);
-    ui->tempreture->setVisible(showTemperature);
+    ui->temperature->setVisible(showTemperature);
     ui->groupBox->setVisible(showVoltage || showCurrent || showTemperature);
 }
 
@@ -600,8 +692,8 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     m_selectedEquipmentName = equipment->name();
 
     ui->nameValueLabel->setText(equipment->name());
-    ui->typeValueLabel->setText(equipment->type());
-    ui->statusValueLabel->setText(equipment->status());
+    ui->typeValueLabel->setText(translatedEquipmentType(equipment->type()));
+    ui->statusValueLabel->setText(translatedEquipmentStatus(equipment->status()));
     ui->locationValueLabel->setText(equipment->location().isEmpty() ? "-" : equipment->location());
     ui->descriptionValueLabel->setText(equipment->description().isEmpty() ? "-" : equipment->description());
     updateBreakerControls(equipment);
@@ -621,7 +713,7 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     ui->parametersTable->setRowCount(visibleParameters.size());
     int row = 0;
     for (const auto &parameter : visibleParameters) {
-        ui->parametersTable->setItem(row, 0, new QTableWidgetItem(parameter.first));
+        ui->parametersTable->setItem(row, 0, new QTableWidgetItem(translatedParameterName(parameter.first)));
         ui->parametersTable->setItem(row, 1, new QTableWidgetItem(parameter.second));
         ++row;
     }
@@ -631,7 +723,7 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     }
 
     if (fromUserAction) {
-        logInfo("User Action", QString("Selected equipment: %1").arg(equipment->name()));
+        logInfo(QStringLiteral("User Action"), tr("Selected equipment: %1").arg(equipment->name()));
     }
 }
 
@@ -646,8 +738,8 @@ void MainWindow::updateBreakerControls(Equipment *equipment)
     }
 
     const QSignalBlocker blocker(ui->breakerStateCombo);
-    ui->breakerStateCombo->setCurrentText(m_telemetryService->breakerClosed() ? QStringLiteral("Closed")
-                                                                              : QStringLiteral("Open"));
+    ui->breakerStateCombo->setCurrentText(m_telemetryService->breakerClosed() ? tr("Closed")
+                                                                              : tr("Open"));
 }
 
 void MainWindow::updateTemperatureControls(Equipment *equipment)
@@ -687,14 +779,14 @@ void MainWindow::appendEvent(EventLevel level,
     QTableWidgetItem *levelItem = new QTableWidgetItem();
     switch (level) {
         case EventLevel::Info:
-            levelItem->setText("Info");
+            levelItem->setText(tr("Info"));
             break;
         case EventLevel::Warning:
-            levelItem->setText("Warning");
+            levelItem->setText(tr("Warning"));
             levelItem->setForeground(Qt::yellow);
             break;
         case EventLevel::Critical:
-            levelItem->setText("Critical");
+            levelItem->setText(tr("Critical"));
             levelItem->setForeground(Qt::red);
             break;
     }
@@ -702,7 +794,13 @@ void MainWindow::appendEvent(EventLevel level,
     QTableWidgetItem *timeItem = new QTableWidgetItem(eventTime.toString("yyyy-MM-dd HH:mm:ss"));
     ui->eventLogTable->setItem(row, 1, levelItem);
     ui->eventLogTable->setItem(row, 0, timeItem);
-    ui->eventLogTable->setItem(row, 2, new QTableWidgetItem(source));
+    QString displaySource = source;
+    if (source == QStringLiteral("Telemetry")) {
+        displaySource = tr("Telemetry");
+    } else if (source == QStringLiteral("User Action")) {
+        displaySource = tr("User Action");
+    }
+    ui->eventLogTable->setItem(row, 2, new QTableWidgetItem(displaySource));
     ui->eventLogTable->setItem(row, 3, new QTableWidgetItem(message));
 
     constexpr int maximumVisibleEvents = 1000;

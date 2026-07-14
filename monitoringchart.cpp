@@ -1,6 +1,7 @@
 #include "monitoringchart.h"
 
 #include <QDateTime>
+#include <QCoreApplication>
 #include <QFont>
 #include <QGraphicsEllipseItem>
 #include <QGraphicsTextItem>
@@ -36,12 +37,13 @@ QHash<QGraphicsScene *, ChartState> &chartStates()
 
 QString formatAxisValue(double value, const QString &unit)
 {
-    return QStringLiteral("%1 %2").arg(QString::number(value, 'f', 1), unit);
+    return QCoreApplication::translate("MonitoringChart", "%1 %2")
+        .arg(QString::number(value, 'f', 1), unit);
 }
 
 QString formatPointText(const TelemetrySample &sample, const QString &unit)
 {
-    return QStringLiteral("%1  |  %2")
+    return QCoreApplication::translate("MonitoringChart", "%1  |  %2")
         .arg(sample.timestamp.toLocalTime().toString(QStringLiteral("HH:mm:ss")),
              formatAxisValue(sample.value, unit));
 }
@@ -82,7 +84,8 @@ void updatePointSelection(QGraphicsScene *scene)
         const TelemetrySample sample{timestamp, selectedPoint->data(1).toDouble()};
         const QString unit = selectedPoint->data(2).toString();
         state.selectedTimestamp = selectedPoint->data(0).toLongLong();
-        state.detailsItem->setPlainText(QStringLiteral("Selected: %1").arg(formatPointText(sample, unit)));
+        state.detailsItem->setPlainText(QCoreApplication::translate("MonitoringChart", "Selected: %1")
+                                            .arg(formatPointText(sample, unit)));
     } else {
         state.detailsItem->setPlainText(state.defaultDetailsText);
     }
@@ -200,7 +203,7 @@ void render(QGraphicsScene *scene,
     titleItem->setPos(10, 4);
 
     if (history.isEmpty()) {
-        QGraphicsTextItem *emptyItem = scene->addText(QStringLiteral("No data"), labelFont);
+        QGraphicsTextItem *emptyItem = scene->addText(QCoreApplication::translate("MonitoringChart", "No data"), labelFont);
         emptyItem->setDefaultTextColor(textColor);
         emptyItem->setPos(10, size.height() / 2.0 - 10.0);
         return;
@@ -218,7 +221,7 @@ void render(QGraphicsScene *scene,
     }
 
     if (visible.isEmpty()) {
-        QGraphicsTextItem *emptyItem = scene->addText(QStringLiteral("No data in period"), labelFont);
+        QGraphicsTextItem *emptyItem = scene->addText(QCoreApplication::translate("MonitoringChart", "No data in period"), labelFont);
         emptyItem->setDefaultTextColor(textColor);
         emptyItem->setPos(10, size.height() / 2.0 - 10.0);
         return;
@@ -308,10 +311,11 @@ void render(QGraphicsScene *scene,
 
     scene->addPath(path, QPen(lineColor, 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 
-    state.defaultDetailsText = QStringLiteral("Current: %1").arg(formatPointText(visible.last(), unit));
+    state.defaultDetailsText = QCoreApplication::translate("MonitoringChart", "Current: %1")
+                                   .arg(formatPointText(visible.last(), unit));
 
     QGraphicsTextItem *statsItem = scene->addText(
-        QStringLiteral("%1 %2  min %3  max %4")
+        QCoreApplication::translate("MonitoringChart", "%1 %2  min %3  max %4")
             .arg(QString::number(visible.last().value, 'f', 1),
                  unit,
                  QString::number(minValue, 'f', 1),

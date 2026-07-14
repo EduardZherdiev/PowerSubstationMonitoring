@@ -2,7 +2,9 @@
 #include "ui_settingsdialog.h"
 
 #include <QApplication>
+#include <QEvent>
 #include <QPushButton>
+#include <QTranslator>
 
 namespace {
 
@@ -34,6 +36,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     , m_settings(AppSettings::load())
 {
     ui->setupUi(this);
+    ui->languageComboBox->setItemData(0, QStringLiteral("en"));
+    ui->languageComboBox->setItemData(1, QStringLiteral("uk"));
     ui->pushButton_2->setEnabled(true);
 
     connect(ui->pushButton_2, &QPushButton::clicked, this, &SettingsDialog::accept);
@@ -50,6 +54,8 @@ SettingsDialog::~SettingsDialog()
 void SettingsDialog::loadSettings()
 {
     selectThemeRadio(ui, m_settings.theme);
+    const int languageIndex = ui->languageComboBox->findData(m_settings.language);
+    ui->languageComboBox->setCurrentIndex(languageIndex >= 0 ? languageIndex : 0);
 }
 
 AppSettings::ThemeMode SettingsDialog::selectedTheme() const
@@ -57,10 +63,31 @@ AppSettings::ThemeMode SettingsDialog::selectedTheme() const
     return themeFromRadioButtons(ui);
 }
 
+QString SettingsDialog::selectedLanguage() const
+{
+    const QString language = ui->languageComboBox->currentData().toString();
+    return language.isEmpty() ? QStringLiteral("en") : language;
+}
+
 void SettingsDialog::accept()
 {
     m_settings.theme = selectedTheme();
+    m_settings.language = selectedLanguage();
     AppSettings::save(m_settings);
     AppSettings::applyTheme(*qApp, m_settings.theme);
+
+    if (auto *translator = qApp->findChild<QTranslator *>(QStringLiteral("applicationTranslator"))) {
+        AppSettings::applyLanguage(*qApp, m_settings.language, *translator);
+    }
+
     QDialog::accept();
+}
+
+void SettingsDialog::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        loadSettings();
+    }
+    QDialog::changeEvent(event);
 }

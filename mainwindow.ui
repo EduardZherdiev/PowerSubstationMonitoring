@@ -107,11 +107,15 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="monitoring">
+       <widget class="QScrollArea" name="monitoring">
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
         <attribute name="title">
          <string>Monitoring</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
+        <widget class="QWidget" name="monitoringContent">
+         <layout class="QVBoxLayout" name="verticalLayout_3">
          <item>
           <widget class="QGroupBox" name="groupBox">
            <property name="title">
@@ -259,21 +263,22 @@
          <item>
           <widget class="QLabel" name="label_3">
            <property name="text">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tempreture (&lt;span style=&quot; vertical-align:super;&quot;&gt;o&lt;/span&gt;C)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Temperature (&lt;span style=&quot; vertical-align:super;&quot;&gt;o&lt;/span&gt;C)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QGraphicsView" name="tempreture">
+           <widget class="QGraphicsView" name="temperature">
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>200</height>
+             <height>220</height>
             </size>
            </property>
           </widget>
          </item>
-        </layout>
+         </layout>
+        </widget>
        </widget>
       </widget>
       <widget class="QWidget" name="parameterPanel">
@@ -476,6 +481,12 @@
     </item>
     <item>
      <widget class="QTableWidget" name="eventLogTable">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>245</height>
+       </size>
+      </property>
       <property name="editTriggers">
        <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
       </property>

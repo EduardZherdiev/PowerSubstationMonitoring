@@ -2,4 +2,7 @@
     <qresource prefix="/">
         <file>resources/appIcon.png</file>
     </qresource>
+    <qresource prefix="/translations">
+        <file alias="app_uk.qm">ts/app_uk.qm</file>
+    </qresource>
 </RCC>

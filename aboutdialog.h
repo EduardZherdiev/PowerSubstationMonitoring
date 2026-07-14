@@ -2,6 +2,7 @@
 #define ABOUTDIALOG_H
 
 #include <QDialog>
+#include <QEvent>
 
 namespace Ui {
 class AboutDialog;
@@ -14,6 +15,9 @@ class AboutDialog : public QDialog
 public:
     explicit AboutDialog(QWidget *parent = nullptr);
     ~AboutDialog();
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private:
     Ui::AboutDialog *ui;

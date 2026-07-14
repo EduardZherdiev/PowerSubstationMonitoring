@@ -1,5 +1,6 @@
 #include "sensortelemetry.h"
 
+#include <QCoreApplication>
 #include <QRandomGenerator>
 #include <QtMath>
 
@@ -41,10 +42,10 @@ bool SensorTelemetrySimulator::tryReadSnapshot(SensorSnapshot *result)
     snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), snapshot.transformerTemperatureC);
 
     if (snapshot.sourceVoltageKv < 320.0) {
-        snapshot.notes.append(QStringLiteral("Source voltage dropped below expected range"));
+        snapshot.notes.append(QCoreApplication::translate("SensorTelemetry", "Source voltage dropped below expected range"));
     }
     if (snapshot.transformerTemperatureC > 80.0) {
-        snapshot.notes.append(QStringLiteral("Transformer temperature warning"));
+        snapshot.notes.append(QCoreApplication::translate("SensorTelemetry", "Transformer temperature warning"));
     }
 
     *result = snapshot;

@@ -87,7 +87,7 @@ bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage)
 {
     if (!layout) {
         if (errorMessage) {
-            *errorMessage = QStringLiteral("Layout output is null.");
+            *errorMessage = QCoreApplication::translate("SubstationLayout", "Layout output is null.");
         }
         return false;
     }
@@ -95,7 +95,7 @@ bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage)
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         if (errorMessage) {
-            *errorMessage = QStringLiteral("Unable to open layout file: %1").arg(path);
+            *errorMessage = QCoreApplication::translate("SubstationLayout", "Unable to open layout file: %1").arg(path);
         }
         return false;
     }
@@ -103,7 +103,7 @@ bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage)
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
     if (!document.isObject()) {
         if (errorMessage) {
-            *errorMessage = QStringLiteral("Invalid layout JSON document.");
+            *errorMessage = QCoreApplication::translate("SubstationLayout", "Invalid layout JSON document.");
         }
         return false;
     }

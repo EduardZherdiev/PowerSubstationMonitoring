@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QDateTime>
+#include <QEvent>
 #include <QMainWindow>
 
 #include "telemetryservice.h"
@@ -33,6 +34,9 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private:
     void setupModelAndViews();

@@ -3,6 +3,55 @@
 #include "equipment.h"
 #include "substationlayout.h"
 
+#include <QCoreApplication>
+
+namespace {
+
+QString translatedType(const QString &type)
+{
+    if (type == QStringLiteral("Transmission Line")) {
+        return QCoreApplication::translate("Equipment", "Transmission Line");
+    }
+    if (type == QStringLiteral("Circuit Breaker")) {
+        return QCoreApplication::translate("Equipment", "Circuit Breaker");
+    }
+    if (type == QStringLiteral("Transformer")) {
+        return QCoreApplication::translate("Equipment", "Transformer");
+    }
+    if (type == QStringLiteral("Busbar")) {
+        return QCoreApplication::translate("Equipment", "Busbar");
+    }
+    return type;
+}
+
+QString translatedStatus(const QString &status)
+{
+    if (status == QStringLiteral("Ready")) {
+        return QCoreApplication::translate("Equipment", "Ready");
+    }
+    if (status == QStringLiteral("Closed")) {
+        return QCoreApplication::translate("Equipment", "Closed");
+    }
+    if (status == QStringLiteral("Open")) {
+        return QCoreApplication::translate("Equipment", "Open");
+    }
+    if (status == QStringLiteral("Energized")) {
+        return QCoreApplication::translate("Equipment", "Energized");
+    }
+    if (status == QStringLiteral("De-energized")) {
+        return QCoreApplication::translate("Equipment", "De-energized");
+    }
+    if (status == QStringLiteral("Loading")) {
+        return QCoreApplication::translate("Equipment", "Loading");
+    }
+    if (status == QStringLiteral("Cooling")) {
+        return QCoreApplication::translate("Equipment", "Cooling");
+    }
+    return status;
+}
+
+} // namespace
+
 #include <QMap>
 
 EquipmentTreeModel::EquipmentTreeModel(QObject *parent)
@@ -41,6 +90,12 @@ void EquipmentTreeModel::updateLayout(const SubstationLayout::Layout &layout)
                              {Qt::DisplayRole});
         }
     }
+}
+
+void EquipmentTreeModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount() - 1);
+    emit layoutChanged();
 }
 
 EquipmentTreeModel::~EquipmentTreeModel()
@@ -117,7 +172,17 @@ QVariant EquipmentTreeModel::data(const QModelIndex &index, int role) const
     }
 
     auto *item = static_cast<Equipment *>(index.internalPointer());
-    return item ? item->data(index.column()) : QVariant();
+    if (!item) {
+        return QVariant();
+    }
+
+    if (index.column() == 1) {
+        return translatedType(item->type());
+    }
+    if (index.column() == 2) {
+        return translatedStatus(item->status());
+    }
+    return item->data(index.column());
 }
 
 QVariant EquipmentTreeModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -128,11 +193,11 @@ QVariant EquipmentTreeModel::headerData(int section, Qt::Orientation orientation
 
     switch (section) {
     case 0:
-        return QStringLiteral("Equipment");
+        return tr("Equipment");
     case 1:
-        return QStringLiteral("Type");
+        return tr("Type");
     case 2:
-        return QStringLiteral("Status");
+        return tr("Status");
     default:
         return QVariant();
     }

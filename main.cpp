@@ -3,6 +3,7 @@
 #include "appsettings.h"
 
 #include <QApplication>
+#include <QTranslator>
 
 int main(int argc, char *argv[])
 {
@@ -12,6 +13,10 @@ int main(int argc, char *argv[])
 
     const AppSettings::Settings settings = AppSettings::load();
     AppSettings::applyTheme(a, settings.theme);
+
+    auto *translator = new QTranslator(&a);
+    translator->setObjectName(QStringLiteral("applicationTranslator"));
+    AppSettings::applyLanguage(a, settings.language, *translator);
 
     EventLogger::instance(&a);
     MainWindow w;

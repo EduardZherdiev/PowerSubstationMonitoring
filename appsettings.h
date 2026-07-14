@@ -4,6 +4,7 @@
 #include <QString>
 
 class QApplication;
+class QTranslator;
 
 namespace AppSettings {
 
@@ -23,6 +24,7 @@ QString settingsFilePath();
 Settings load();
 void save(const Settings &settings);
 void applyTheme(QApplication &application, ThemeMode theme);
+bool applyLanguage(QApplication &application, const QString &language, QTranslator &translator);
 
 QString themeToString(ThemeMode theme);
 ThemeMode themeFromString(const QString &themeName);

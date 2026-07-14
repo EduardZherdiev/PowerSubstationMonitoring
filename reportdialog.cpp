@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QCoreApplication>
 #include <QMessageBox>
 #include <QPrinter>
 #include <QRegularExpression>
@@ -16,19 +17,21 @@ QString levelText(EventLevel level)
 {
     switch (level) {
     case EventLevel::Info:
-        return QStringLiteral("Info");
+        return QCoreApplication::translate("ReportDialog", "Info");
     case EventLevel::Warning:
-        return QStringLiteral("Warning");
+        return QCoreApplication::translate("ReportDialog", "Warning");
     case EventLevel::Critical:
-        return QStringLiteral("Critical");
+        return QCoreApplication::translate("ReportDialog", "Critical");
     }
-    return QStringLiteral("Info");
+    return QCoreApplication::translate("ReportDialog", "Info");
 }
 
 bool isTemperatureAlert(const EventRecord &record)
 {
     return record.source == QStringLiteral("Telemetry")
-        && record.message.contains(QStringLiteral("Transformer temperature"), Qt::CaseInsensitive);
+        && (record.message.contains(QStringLiteral("Transformer temperature"), Qt::CaseInsensitive)
+            || record.message.contains(QCoreApplication::translate("ReportDialog", "Transformer temperature"),
+                                       Qt::CaseInsensitive));
 }
 
 double temperatureValueFromMessage(const QString &message, bool *ok = nullptr)
@@ -53,8 +56,8 @@ double temperatureValueFromMessage(const QString &message, bool *ok = nullptr)
 QString temperatureMessagePrefix(EventLevel level)
 {
     return level == EventLevel::Critical
-        ? QStringLiteral("Transformer temperature critical: ")
-        : QStringLiteral("Transformer temperature warning: ");
+        ? QCoreApplication::translate("ReportDialog", "Transformer temperature critical: ")
+        : QCoreApplication::translate("ReportDialog", "Transformer temperature warning: ");
 }
 
 } // namespace
@@ -85,6 +88,15 @@ ReportDialog::~ReportDialog()
     delete ui;
 }
 
+void ReportDialog::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        refreshPreview();
+    }
+    QDialog::changeEvent(event);
+}
+
 QVector<EventRecord> ReportDialog::selectedRecords() const
 {
     return EventLogger::instance()->records(ui->fromEdit->dateTime(), ui->toEdit->dateTime(), true);
@@ -94,11 +106,11 @@ QString ReportDialog::reportText(const QVector<EventRecord> &records) const
 {
     QString text;
     QTextStream stream(&text);
-    stream << "Power Substation Monitoring Report\n";
-    stream << "Period: " << ui->fromEdit->dateTime().toString("yyyy-MM-dd HH:mm:ss")
+    stream << tr("Power Substation Monitoring Report") << "\n";
+    stream << tr("Period: ") << ui->fromEdit->dateTime().toString("yyyy-MM-dd HH:mm:ss")
            << " - " << ui->toEdit->dateTime().toString("yyyy-MM-dd HH:mm:ss") << "\n";
-    stream << "Included levels: Warning, Critical\n";
-    stream << "Total events: " << records.size() << "\n\n";
+    stream << tr("Included levels: Warning, Critical") << "\n";
+    stream << tr("Total events: ") << records.size() << "\n\n";
     stream << temperaturePeriodsText(records);
 
     // if (records.isEmpty()) {
@@ -120,7 +132,7 @@ QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records
 {
     QString text;
     QTextStream stream(&text);
-    stream << "Temperature out-of-range periods:\n";
+    stream << tr("Temperature out-of-range periods:") << "\n";
 
     QVector<EventRecord> temperatureRecords;
     for (const EventRecord &record : records) {
@@ -130,7 +142,7 @@ QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records
     }
 
     if (temperatureRecords.isEmpty()) {
-        stream << "None\n\n";
+        stream << tr("None") << "\n\n";
         return text;
     }
 
@@ -156,7 +168,7 @@ QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records
         stream << periodStart.toString("yyyy-MM-dd HH:mm:ss")
                << " - " << periodEnd.toString("yyyy-MM-dd HH:mm:ss")
                << " | " << levelText(periodLevel)
-               << " | Telemetry"
+               << " | " << tr("Telemetry")
                << " | " << temperatureMessagePrefix(periodLevel)
                << QString::number(startTemperature, 'f', 1)
                << " - " << QString::number(endTemperature, 'f', 1)
@@ -171,7 +183,7 @@ QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records
     stream << periodStart.toString("yyyy-MM-dd HH:mm:ss")
            << " - " << periodEnd.toString("yyyy-MM-dd HH:mm:ss")
            << " | " << levelText(periodLevel)
-           << " | Telemetry"
+           << " | " << tr("Telemetry")
            << " | " << temperatureMessagePrefix(periodLevel)
            << QString::number(startTemperature, 'f', 1)
            << " - " << QString::number(endTemperature, 'f', 1)
@@ -185,7 +197,7 @@ void ReportDialog::refreshPreview()
     ui->exportTxtButton->setEnabled(validPeriod);
     ui->exportPdfButton->setEnabled(validPeriod);
     if (!validPeriod) {
-        ui->previewEdit->setPlainText(QStringLiteral("The start of the period must not be later than its end."));
+        ui->previewEdit->setPlainText(tr("The start of the period must not be later than its end."));
         return;
     }
     ui->previewEdit->setPlainText(reportText(selectedRecords()));
@@ -194,16 +206,16 @@ void ReportDialog::refreshPreview()
 void ReportDialog::exportTxt()
 {
     const QString filePath = QFileDialog::getSaveFileName(this,
-                                                          QStringLiteral("Export TXT Report"),
+                                                          tr("Export TXT Report"),
                                                           QStringLiteral("event-report.txt"),
-                                                          QStringLiteral("Text files (*.txt)"));
+                                                          tr("Text files (*.txt)"));
     if (filePath.isEmpty()) {
         return;
     }
 
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, QStringLiteral("Export failed"), QStringLiteral("Could not write TXT report."));
+        QMessageBox::warning(this, tr("Export failed"), tr("Could not write TXT report."));
         return;
     }
 
@@ -211,22 +223,22 @@ void ReportDialog::exportTxt()
     stream << reportText(selectedRecords());
     stream.flush();
     if (stream.status() != QTextStream::Ok) {
-        QMessageBox::warning(this, QStringLiteral("Export failed"), QStringLiteral("Could not write TXT report."));
+        QMessageBox::warning(this, tr("Export failed"), tr("Could not write TXT report."));
         return;
     }
 
     file.close();
     QMessageBox::information(this,
-                             QStringLiteral("Export completed"),
-                             QStringLiteral("TXT report was successfully saved to:\n%1").arg(filePath));
+                             tr("Export completed"),
+                             tr("TXT report was successfully saved to:\n%1").arg(filePath));
 }
 
 void ReportDialog::exportPdf()
 {
     const QString filePath = QFileDialog::getSaveFileName(this,
-                                                          QStringLiteral("Export PDF Report"),
+                                                          tr("Export PDF Report"),
                                                           QStringLiteral("event-report.pdf"),
-                                                          QStringLiteral("PDF files (*.pdf)"));
+                                                          tr("PDF files (*.pdf)"));
     if (filePath.isEmpty()) {
         return;
     }
@@ -242,11 +254,11 @@ void ReportDialog::exportPdf()
 
     const QFileInfo outputFile(filePath);
     if (printer.printerState() == QPrinter::Error || !outputFile.exists() || outputFile.size() == 0) {
-        QMessageBox::warning(this, QStringLiteral("Export failed"), QStringLiteral("Could not write PDF report."));
+        QMessageBox::warning(this, tr("Export failed"), tr("Could not write PDF report."));
         return;
     }
 
     QMessageBox::information(this,
-                             QStringLiteral("Export completed"),
-                             QStringLiteral("PDF report was successfully saved to:\n%1").arg(filePath));
+                             tr("Export completed"),
+                             tr("PDF report was successfully saved to:\n%1").arg(filePath));
 }

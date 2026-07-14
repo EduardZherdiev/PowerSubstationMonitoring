@@ -47,7 +47,7 @@ const SubstationLayout::Layout &SubstationDiagramView::substationLayout() const
 
 void SubstationDiagramView::fitToContent()
 {
-    logInfo("SubstationDiagramView", "Fitting diagram to content");
+    logInfo("SubstationDiagramView", tr("Fitting diagram to content"));
     if (!m_scene || viewport()->size().isEmpty()) {
         m_fitPending = true;
         return;
@@ -137,7 +137,7 @@ void SubstationDiagramView::drawBackground(QPainter *painter, const QRectF &rect
 
 void SubstationDiagramView::resizeEvent(QResizeEvent *event)
 {
-    logInfo("SubstationDiagramView", "Resize event triggered");
+    logInfo("SubstationDiagramView", tr("Resize event triggered"));
     QGraphicsView::resizeEvent(event);
     fitToContent();
 }

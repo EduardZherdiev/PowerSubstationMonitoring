@@ -9,6 +9,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTextStream>
+#include <QTranslator>
 
 namespace AppSettings {
 
@@ -91,6 +92,22 @@ void applyTheme(QApplication &application, ThemeMode theme)
         }
         widget->update();
     }
+}
+
+bool applyLanguage(QApplication &application, const QString &language, QTranslator &translator)
+{
+    application.removeTranslator(&translator);
+
+    if (!language.trimmed().startsWith(QStringLiteral("uk"), Qt::CaseInsensitive)) {
+        return true;
+    }
+
+    if (!translator.load(QStringLiteral(":/translations/app_uk.qm"))) {
+        return false;
+    }
+
+    application.installTranslator(&translator);
+    return true;
 }
 
 } // namespace AppSettings
