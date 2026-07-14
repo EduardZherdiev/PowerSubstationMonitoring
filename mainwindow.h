@@ -37,6 +37,7 @@ public:
 
 protected:
     void changeEvent(QEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     void setupModelAndViews();
@@ -47,6 +48,7 @@ private:
     void processSnapshot(const SensorSnapshot &snapshot);
     void updateConnectionState(TelemetryService::ConnectionState state);
     void setupMonitoringCharts();
+    void applyThemePalette();
     void refreshMonitoringCharts();
     void updateMonitoringVisibility(Equipment *equipment);
     void rememberCurrentSelection(const QModelIndex &index);

@@ -87,9 +87,17 @@ void DiagramLinkItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
 
 void DiagramLinkItem::setSelectedAppearance(bool selected)
 {
+    m_selected = selected;
     if (selected) {
         setPen(QPen(DiagramTheme::color(DiagramTheme::ColorRole::Selection), m_normalWidth + 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     } else {
         setPen(QPen(m_normalColor, m_normalWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     }
+}
+
+void DiagramLinkItem::refreshTheme()
+{
+    m_normalColor = DiagramTheme::color(DiagramTheme::ColorRole::Branch);
+    setSelectedAppearance(m_selected);
+    update();
 }

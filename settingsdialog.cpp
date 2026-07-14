@@ -38,6 +38,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     ui->setupUi(this);
     ui->languageComboBox->setItemData(0, QStringLiteral("en"));
     ui->languageComboBox->setItemData(1, QStringLiteral("uk"));
+    ui->systemTheme->setFixedHeight(28);
+    ui->lightTheme->setFixedHeight(28);
+    ui->darkTheme->setFixedHeight(28);
+    ui->languageComboBox->setFixedHeight(32);
     ui->pushButton_2->setEnabled(true);
 
     connect(ui->pushButton_2, &QPushButton::clicked, this, &SettingsDialog::accept);

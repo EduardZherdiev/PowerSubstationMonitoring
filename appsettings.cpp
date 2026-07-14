@@ -3,8 +3,12 @@
 #include "substationdiagramview.h"
 
 #include <QApplication>
+#include <QComboBox>
 #include <QDir>
 #include <QFile>
+#include <QGroupBox>
+#include <QLayout>
+#include <QRadioButton>
 #include <QWidget>
 #include <QSettings>
 #include <QStandardPaths>
@@ -70,8 +74,10 @@ void applyTheme(QApplication &application, ThemeMode theme)
 {
     DiagramTheme::setTheme(theme);
 
+    QString themeStyleSheet;
+
     if (theme == ThemeMode::System) {
-        application.setStyleSheet(QString());
+        themeStyleSheet.clear();
     } else {
         const QString resourcePath = theme == ThemeMode::Dark
             ? QStringLiteral(":/dark/stylesheet.qss")
@@ -79,16 +85,39 @@ void applyTheme(QApplication &application, ThemeMode theme)
 
         QFile file(resourcePath);
         if (!file.open(QFile::ReadOnly | QFile::Text)) {
-            application.setStyleSheet(QString());
+            themeStyleSheet.clear();
         } else {
             QTextStream stream(&file);
-            application.setStyleSheet(stream.readAll());
+            themeStyleSheet = stream.readAll();
         }
     }
+
+    // Keep group box geometry and title placement independent of the theme stylesheet.
+    themeStyleSheet += QStringLiteral(
+        "\nQGroupBox { margin-top: 9px; padding-top: 9px; color: palette(text); }\n"
+        "QGroupBox::title { top: -14px; subcontrol-origin: content; "
+        "subcontrol-position: top center; padding-left: 3px; padding-right: 3px; "
+        "color: palette(text); background-color: palette(window); }\n");
+    application.setStyleSheet(themeStyleSheet);
 
     for (QWidget *widget : QApplication::allWidgets()) {
         if (auto *diagramView = qobject_cast<SubstationDiagramView *>(widget)) {
             diagramView->refreshTheme();
+        }
+
+        // Keep control geometry stable because Breeze sizes these widgets in em units.
+        if (qobject_cast<QRadioButton *>(widget)) {
+            widget->setFixedHeight(28);
+        } else if (qobject_cast<QComboBox *>(widget)) {
+            widget->setFixedHeight(28);
+        }
+        if (auto *groupBox = qobject_cast<QGroupBox *>(widget)) {
+            if (QLayout *layout = groupBox->layout()) {
+                layout->setContentsMargins(9, 9, 9, 9);
+                layout->setSpacing(6);
+                groupBox->setMinimumHeight(qMax(groupBox->minimumHeight(),
+                                                layout->sizeHint().height() + 9));
+            }
         }
         widget->update();
     }

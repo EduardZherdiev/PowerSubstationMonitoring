@@ -25,6 +25,7 @@ public:
     QString sourceKey() const;
     QString targetKey() const;
     void setSelectedAppearance(bool selected);
+    void refreshTheme();
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
 
@@ -33,6 +34,7 @@ private:
     QString m_targetKey;
     QColor m_normalColor;
     qreal m_normalWidth;
+    bool m_selected = false;
 };
 
 #endif // DIAGRAMLINKITEM_H

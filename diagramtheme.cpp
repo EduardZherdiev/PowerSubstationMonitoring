@@ -1,5 +1,8 @@
 #include "diagramtheme.h"
 
+#include <QApplication>
+#include <QPalette>
+
 namespace {
 
 AppSettings::ThemeMode currentTheme = AppSettings::ThemeMode::Dark;
@@ -39,23 +42,58 @@ QColor lightColor(DiagramTheme::ColorRole role)
     case DiagramTheme::ColorRole::Background:
         return QColor::fromRgb(0xF5F7FA);
     case DiagramTheme::ColorRole::Text:
+    case DiagramTheme::ColorRole::PanelText:
         return QColor::fromRgb(0x17212B);
     case DiagramTheme::ColorRole::Grid:
+        return QColor::fromRgb(0xD7DEE8);
     case DiagramTheme::ColorRole::Busbar:
+        return QColor::fromRgb(0x1976B9);
     case DiagramTheme::ColorRole::Branch:
+        return QColor::fromRgb(0x64748B);
     case DiagramTheme::ColorRole::Accent:
+        return QColor::fromRgb(0xB45309);
     case DiagramTheme::ColorRole::Selection:
+        return QColor::fromRgb(0xC62828);
     case DiagramTheme::ColorRole::Border:
+        return QColor::fromRgb(0x94A3B8);
     case DiagramTheme::ColorRole::NodeFill:
+        return QColor::fromRgb(0xE2E8F0);
     case DiagramTheme::ColorRole::PanelBackground:
-    case DiagramTheme::ColorRole::PanelText:
-        return darkColor(role);
+        return QColor::fromRgb(0xFFFFFF);
     }
     return QColor::fromRgb(0x17212B);
 }
 
 QColor themedColor(DiagramTheme::ColorRole role)
 {
+    if (currentTheme == AppSettings::ThemeMode::System) {
+        const QPalette palette = QApplication::palette();
+        switch (role) {
+        case DiagramTheme::ColorRole::Background:
+            return palette.color(QPalette::Window);
+        case DiagramTheme::ColorRole::Grid:
+            return palette.color(QPalette::Mid);
+        case DiagramTheme::ColorRole::Busbar:
+            return palette.color(QPalette::Highlight);
+        case DiagramTheme::ColorRole::Branch:
+            return palette.color(QPalette::Mid);
+        case DiagramTheme::ColorRole::Accent:
+            return palette.color(QPalette::Link);
+        case DiagramTheme::ColorRole::Selection:
+            // Selection is part of the diagram visual language, not the system palette.
+            return darkColor(DiagramTheme::ColorRole::Selection);
+        case DiagramTheme::ColorRole::Border:
+            return palette.color(QPalette::Mid);
+        case DiagramTheme::ColorRole::Text:
+        case DiagramTheme::ColorRole::PanelText:
+            return palette.color(QPalette::Text);
+        case DiagramTheme::ColorRole::NodeFill:
+            // Keep equipment colors consistent with the dark theme.
+            return darkColor(DiagramTheme::ColorRole::NodeFill);
+        case DiagramTheme::ColorRole::PanelBackground:
+            return palette.color(QPalette::Base);
+        }
+    }
     if (currentTheme == AppSettings::ThemeMode::Light) {
         return lightColor(role);
     }

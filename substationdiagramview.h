@@ -51,7 +51,7 @@ private:
                        const QPointF &end);
     void drawBackground(QPainter *painter, const QRectF &rect) override;
     void resizeEvent(QResizeEvent *event) override;
-    QPointF anchorPoint(const DiagramNodeItem *node, bool rightSide) const;
+    QPointF anchorPoint(const DiagramNodeItem *node, const DiagramNodeItem *other) const;
 
     QGraphicsScene *m_scene;
     QHash<QString, DiagramNodeItem *> m_nodes;

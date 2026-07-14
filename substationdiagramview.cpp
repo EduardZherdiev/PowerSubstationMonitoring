@@ -87,6 +87,11 @@ void SubstationDiagramView::refreshTheme()
     }
 
     m_scene->setBackgroundBrush(QBrush(DiagramTheme::color(DiagramTheme::ColorRole::Background)));
+    for (const ConnectionRecord &connection : std::as_const(m_connections)) {
+        if (connection.item) {
+            connection.item->refreshTheme();
+        }
+    }
     viewport()->update();
     if (scene()) {
         scene()->update();
@@ -108,8 +113,10 @@ void SubstationDiagramView::addConnection(const SubstationLayout::ConnectionSpec
                                           const QPointF &start,
                                           const QPointF &end)
 {
-    const QColor resolvedColor = DiagramTheme::color(connectionSpec.colorRole);
-    auto *link = new DiagramLinkItem(connectionSpec.fromId, connectionSpec.toId, QLineF(start, end), resolvedColor, connectionSpec.width);
+    Q_UNUSED(connectionSpec.colorRole)
+    Q_UNUSED(connectionSpec.width)
+    const QColor resolvedColor = DiagramTheme::color(DiagramTheme::ColorRole::Branch);
+    auto *link = new DiagramLinkItem(connectionSpec.fromId, connectionSpec.toId, QLineF(start, end), resolvedColor, 2.0);
     m_scene->addItem(link);
     m_connections.append(ConnectionRecord{connectionSpec.fromId, connectionSpec.toId, link});
 }
@@ -165,8 +172,8 @@ void SubstationDiagramView::buildDiagram()
             continue;
         }
 
-        start = anchorPoint(sourceNode, true);
-        end = anchorPoint(targetNode, false);
+        start = anchorPoint(sourceNode, targetNode);
+        end = anchorPoint(targetNode, sourceNode);
         addConnection(connectionSpec, start, end);
     }
 
@@ -180,14 +187,24 @@ void SubstationDiagramView::buildDiagram()
     m_fitPending = true;
 }
 
-QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem *node, bool rightSide) const
+QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem *node, const DiagramNodeItem *other) const
 {
-    if (!node) {
+    if (!node || !other) {
         return QPointF();
     }
 
     const QRectF rect = node->boundingRect();
-    const QPointF topLeft = node->pos();
-    return rightSide ? QPointF(topLeft.x() + rect.right(), topLeft.y() + rect.center().y())
-                     : QPointF(topLeft.x() + rect.left(), topLeft.y() + rect.center().y());
+    const QPointF center = node->pos() + rect.center();
+    const QPointF otherCenter = other->pos() + other->boundingRect().center();
+    const QPointF direction = otherCenter - center;
+
+    if (qFuzzyIsNull(direction.x()) && qFuzzyIsNull(direction.y())) {
+        return center;
+    }
+
+    const qreal halfWidth = qMax<qreal>(1.0, rect.width() / 2.0);
+    const qreal halfHeight = qMax<qreal>(1.0, rect.height() / 2.0);
+    const qreal scale = 1.0 / qMax(qAbs(direction.x()) / halfWidth,
+                                  qAbs(direction.y()) / halfHeight);
+    return center + direction * scale;
 }

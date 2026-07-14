@@ -226,16 +226,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->dateEdit->setEnabled(false);
     ui->periodComboBox->setCurrentIndex(0);
 
-    QPalette windowPalette = palette();
-    windowPalette.setColor(QPalette::Window, DiagramTheme::color(DiagramTheme::ColorRole::Background));
-    windowPalette.setColor(QPalette::Base, DiagramTheme::color(DiagramTheme::ColorRole::PanelBackground));
-    windowPalette.setColor(QPalette::Text, DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
-    windowPalette.setColor(QPalette::WindowText, DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
-    setPalette(windowPalette);
-    ui->centralwidget->setAutoFillBackground(true);
-    ui->centralwidget->setPalette(windowPalette);
-    ui->parameterPanel->setAutoFillBackground(true);
-    ui->parameterPanel->setPalette(windowPalette);
+    applyThemePalette();
 
     ui->equipmentTreeView->setModel(equipmentModel);
     ui->equipmentTreeView->header()->setStretchLastSection(true);
@@ -275,7 +266,33 @@ void MainWindow::changeEvent(QEvent *event)
         }
         refreshMonitoringCharts();
     }
+    if (event->type() == QEvent::StyleChange) {
+        applyThemePalette();
+        refreshMonitoringCharts();
+    }
     QMainWindow::changeEvent(event);
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+
+    // Recalculate scene dimensions after the tab and its scroll area settle.
+    refreshMonitoringCharts();
+}
+
+void MainWindow::applyThemePalette()
+{
+    QPalette windowPalette = palette();
+    windowPalette.setColor(QPalette::Window, DiagramTheme::color(DiagramTheme::ColorRole::Background));
+    windowPalette.setColor(QPalette::Base, DiagramTheme::color(DiagramTheme::ColorRole::PanelBackground));
+    windowPalette.setColor(QPalette::Text, DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
+    windowPalette.setColor(QPalette::WindowText, DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
+    setPalette(windowPalette);
+    ui->centralwidget->setAutoFillBackground(true);
+    ui->centralwidget->setPalette(windowPalette);
+    ui->parameterPanel->setAutoFillBackground(true);
+    ui->parameterPanel->setPalette(windowPalette);
 }
 
 void MainWindow::setupModelAndViews()
@@ -302,6 +319,10 @@ void MainWindow::configureParameterPanel()
     ui->breakerControlLabel->setVisible(false);
     ui->breakerStateCombo->setVisible(false);
     ui->breakerStateCombo->setCurrentText(tr("Closed"));
+    ui->period->setFixedHeight(28);
+    ui->day->setFixedHeight(28);
+    ui->periodComboBox->setFixedHeight(28);
+    ui->breakerStateCombo->setFixedHeight(28);
     ui->temperatureControlLabel->setVisible(false);
     ui->temperatureSpinBox->setVisible(false);
     ui->applyTemperatureButton->setVisible(false);
@@ -460,6 +481,12 @@ void MainWindow::setupMonitoringCharts()
     ui->voltage->setAlignment(Qt::AlignCenter);
     ui->current->setAlignment(Qt::AlignCenter);
     ui->temperature->setAlignment(Qt::AlignCenter);
+    ui->voltage->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->voltage->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->current->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->current->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->temperature->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->temperature->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->current->setMinimumHeight(220);
 }
 
