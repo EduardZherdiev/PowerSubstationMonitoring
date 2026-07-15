@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
+  <rect width="1200" height="620" fill="#101827"/>
+  <rect x="18" y="18" width="1164" height="48" rx="6" fill="#1e2a3b"/>
+  <text x="40" y="49" fill="#e7eef9" font-family="Arial, sans-serif" font-size="20">Power Substation Monitoring</text>
+  <rect x="18" y="84" width="250" height="390" rx="6" fill="#182337" stroke="#53657c"/>
+  <text x="40" y="122" fill="#e7eef9" font-family="Arial, sans-serif" font-size="18">1. Дерево обладнання</text>
+  <rect x="288" y="84" width="610" height="390" rx="6" fill="#111a2b" stroke="#53657c"/>
+  <text x="440" y="122" fill="#e7eef9" font-family="Arial, sans-serif" font-size="18">2. Схема або моніторинг</text>
+  <path d="M390 270 H540 L650 190 H790" fill="none" stroke="#56c2ff" stroke-width="8"/>
+  <circle cx="390" cy="270" r="16" fill="#1a2a42" stroke="#8da0b6" stroke-width="3"/>
+  <circle cx="790" cy="190" r="16" fill="#1a2a42" stroke="#8da0b6" stroke-width="3"/>
+  <rect x="918" y="84" width="264" height="390" rx="6" fill="#182337" stroke="#53657c"/>
+  <text x="950" y="122" fill="#e7eef9" font-family="Arial, sans-serif" font-size="18">3. Параметри</text>
+  <rect x="18" y="496" width="1164" height="96" rx="6" fill="#182337" stroke="#53657c"/>
+  <text x="40" y="548" fill="#e7eef9" font-family="Arial, sans-serif" font-size="18">4. Журнал подій</text>
+  <text x="40" y="575" fill="#9fb0c6" font-family="Arial, sans-serif" font-size="14">Placeholder: це зображення можна замінити реальним скріншотом програми.</text>
+</svg>
