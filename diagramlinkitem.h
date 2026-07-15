@@ -26,6 +26,7 @@ public:
     QString targetKey() const;
     void setSelectedAppearance(bool selected);
     void refreshTheme();
+    void setLine(const QLineF &line);
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
 

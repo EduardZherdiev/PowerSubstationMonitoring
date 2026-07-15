@@ -31,6 +31,7 @@ SubstationDiagramView::SubstationDiagramView(QWidget *parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setAlignment(Qt::AlignCenter);
+    setDragMode(QGraphicsView::ScrollHandDrag);
 
 }
 
@@ -38,11 +39,23 @@ void SubstationDiagramView::setLayout(const SubstationLayout::Layout &layout)
 {
     m_layout = layout;
     buildDiagram();
+    fitToContent();
 }
 
 const SubstationLayout::Layout &SubstationDiagramView::substationLayout() const
 {
     return m_layout;
+}
+
+SubstationLayout::Layout SubstationDiagramView::layoutWithCurrentPositions() const
+{
+    SubstationLayout::Layout layout = m_layout;
+    for (SubstationLayout::NodeSpec &node : layout.nodes) {
+        if (const DiagramNodeItem *item = m_nodes.value(node.id, nullptr)) {
+            node.position = item->pos();
+        }
+    }
+    return layout;
 }
 
 void SubstationDiagramView::fitToContent()
@@ -105,20 +118,22 @@ DiagramNodeItem *SubstationDiagramView::addNode(const SubstationLayout::NodeSpec
     node->setPos(nodeSpec.position);
     m_scene->addItem(node);
     connect(node, &DiagramNodeItem::activated, this, &SubstationDiagramView::equipmentActivated);
+    connect(node, &DiagramNodeItem::positionChanged, this, &SubstationDiagramView::updateNodePosition);
     m_nodes.insert(nodeSpec.id, node);
     return node;
 }
 
 void SubstationDiagramView::addConnection(const SubstationLayout::ConnectionSpec &connectionSpec,
-                                          const QPointF &start,
-                                          const QPointF &end)
+                                          DiagramNodeItem *sourceNode,
+                                          DiagramNodeItem *targetNode)
 {
     Q_UNUSED(connectionSpec.colorRole)
     Q_UNUSED(connectionSpec.width)
     const QColor resolvedColor = DiagramTheme::color(DiagramTheme::ColorRole::Branch);
-    auto *link = new DiagramLinkItem(connectionSpec.fromId, connectionSpec.toId, QLineF(start, end), resolvedColor, 2.0);
+    const QLineF line(anchorPoint(sourceNode, targetNode), anchorPoint(targetNode, sourceNode));
+    auto *link = new DiagramLinkItem(connectionSpec.fromId, connectionSpec.toId, line, resolvedColor, 2.0);
     m_scene->addItem(link);
-    m_connections.append(ConnectionRecord{connectionSpec.fromId, connectionSpec.toId, link});
+    m_connections.append(ConnectionRecord{connectionSpec.fromId, connectionSpec.toId, sourceNode, targetNode, link});
 }
 
 void SubstationDiagramView::drawBackground(QPainter *painter, const QRectF &rect)
@@ -163,8 +178,6 @@ void SubstationDiagramView::buildDiagram()
 
     DiagramNodeItem *sourceNode;
     DiagramNodeItem *targetNode;
-    QPointF start;
-    QPointF end;
     for (const SubstationLayout::ConnectionSpec &connectionSpec : std::as_const(m_layout.connections)) {
         targetNode = m_nodes.value(connectionSpec.toId, nullptr);
         sourceNode = m_nodes.value(connectionSpec.fromId, nullptr);
@@ -172,9 +185,7 @@ void SubstationDiagramView::buildDiagram()
             continue;
         }
 
-        start = anchorPoint(sourceNode, targetNode);
-        end = anchorPoint(targetNode, sourceNode);
-        addConnection(connectionSpec, start, end);
+        addConnection(connectionSpec, sourceNode, targetNode);
     }
 
     const QRectF contentRect = m_scene->itemsBoundingRect();
@@ -207,4 +218,29 @@ QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem *node, const Di
     const qreal scale = 1.0 / qMax(qAbs(direction.x()) / halfWidth,
                                   qAbs(direction.y()) / halfHeight);
     return center + direction * scale;
+}
+
+void SubstationDiagramView::updateConnectionLines()
+{
+    for (const ConnectionRecord &connection : std::as_const(m_connections)) {
+        if (connection.item && connection.sourceNode && connection.targetNode) {
+            connection.item->setLine(QLineF(anchorPoint(connection.sourceNode, connection.targetNode),
+                                            anchorPoint(connection.targetNode, connection.sourceNode)));
+        }
+    }
+}
+
+void SubstationDiagramView::updateNodePosition(const QString &equipmentKey, const QPointF &position)
+{
+    for (SubstationLayout::NodeSpec &node : m_layout.nodes) {
+        if (node.id == equipmentKey) {
+            node.position = position;
+            break;
+        }
+    }
+    updateConnectionLines();
+    const QRectF contentRect = m_scene->itemsBoundingRect();
+    if (!contentRect.isEmpty()) {
+        m_scene->setSceneRect(contentRect.adjusted(-24, -24, 24, 24));
+    }
 }

@@ -22,9 +22,12 @@
 #include <QClipboard>
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QGraphicsScene>
 #include <QPalette>
 #include <QItemSelectionModel>
+#include <QLabel>
 #include <QList>
 #include <QPair>
 #include <QStringList>
@@ -217,9 +220,14 @@ MainWindow::MainWindow(QWidget *parent)
     , m_voltageScene(MonitoringChart::createScene(this))
     , m_currentScene(MonitoringChart::createScene(this))
     , m_temperatureScene(MonitoringChart::createScene(this))
+    , m_layoutFileLabel(nullptr)
     , m_hasLastSnapshot(false)
 {
     ui->setupUi(this);
+    m_layoutFileLabel = new QLabel(this);
+    m_layoutFileLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    statusBar()->addPermanentWidget(m_layoutFileLabel, 1);
+    updateLayoutFileLabel();
     diagramView = ui->graphicsView;
     setupMonitoringCharts();
     ui->period->setChecked(true);
@@ -387,6 +395,22 @@ void MainWindow::connectInteractions()
         AboutDialog aboutDialog(this);
         aboutDialog.exec();
     });
+    connect(ui->actionLoad, &QAction::triggered, this, [this]() {
+        const QString layoutPath = QFileDialog::getOpenFileName(
+            this,
+            tr("Load scheme"),
+            QDir::currentPath(),
+            tr("Substation schemes (*.json);;All files (*.*)"));
+        if (!layoutPath.isEmpty()) {
+            loadSubstationLayoutFile(layoutPath);
+        }
+    });
+    connect(ui->actionSave, &QAction::triggered, this, [this]() {
+        saveSubstationLayout(false);
+    });
+    connect(ui->actionSave_as, &QAction::triggered, this, [this]() {
+        saveSubstationLayout(true);
+    });
     connect(ui->actionSettings, &QAction::triggered, this,[this]() {
         SettingsDialog settingsDialog(this);
         settingsDialog.exec();
@@ -441,33 +465,89 @@ void MainWindow::connectInteractions()
 
 void MainWindow::loadSubstationLayout()
 {
-    SubstationLayout::Layout layout;
-    QString errorMessage;
     const QStringList candidatePaths = {
         SubstationLayout::defaultLayoutPath(),
         QDir::current().filePath(QStringLiteral("substation_layout.json")),
         QDir::current().filePath(QStringLiteral("data/substation_layout.json"))
     };
 
-    bool loaded = false;
     for (const QString &layoutPath : candidatePaths) {
-        if (SubstationLayout::loadFromFile(layoutPath, &layout, &errorMessage)) {
-            loaded = true;
-            break;
+        if (loadSubstationLayoutFile(layoutPath)) {
+            return;
         }
     }
+}
 
-    if (!loaded) {
+bool MainWindow::loadSubstationLayoutFile(const QString &layoutPath)
+{
+    SubstationLayout::Layout layout;
+    QString errorMessage;
+    if (!SubstationLayout::loadFromFile(layoutPath, &layout, &errorMessage)) {
         statusBar()->showMessage(errorMessage, 5000);
-        return;
+        return false;
     }
 
     *m_baseLayout = layout;
     *m_liveLayout = layout;
+    m_currentLayoutPath = layoutPath;
+    updateLayoutFileLabel();
 
     if (m_hasLastSnapshot) {
-        processSnapshot(m_lastSnapshot);
+        TelemetryLayoutMapper::apply(m_liveLayout, m_lastSnapshot);
+        PowerFlowCalculator::annotateLayout(m_liveLayout, m_lastSnapshot.temperatureBySensor);
     }
+
+    diagramView->setLayout(*m_liveLayout);
+    equipmentModel->updateLayout(*m_liveLayout);
+    m_selectedEquipmentName.clear();
+    setupModelAndViews();
+    statusBar()->showMessage(tr("Scheme loaded: %1").arg(QFileInfo(layoutPath).fileName()), 4000);
+    return true;
+}
+
+bool MainWindow::saveSubstationLayout(bool saveAs)
+{
+    QString layoutPath = m_currentLayoutPath;
+    if (saveAs || layoutPath.isEmpty()) {
+        layoutPath = QFileDialog::getSaveFileName(
+            this,
+            tr("Save scheme"),
+            layoutPath.isEmpty() ? QDir::currentPath() : layoutPath,
+            tr("Substation schemes (*.json);;All files (*.*)"));
+        if (layoutPath.isEmpty()) {
+            return false;
+        }
+        if (!layoutPath.endsWith(QStringLiteral(".json"), Qt::CaseInsensitive)) {
+            layoutPath += QStringLiteral(".json");
+        }
+    }
+
+    QString errorMessage;
+    const SubstationLayout::Layout layout = diagramView->layoutWithCurrentPositions();
+    if (!SubstationLayout::saveToFile(layoutPath, layout, &errorMessage)) {
+        statusBar()->showMessage(errorMessage, 5000);
+        return false;
+    }
+
+    *m_baseLayout = layout;
+    *m_liveLayout = layout;
+    m_currentLayoutPath = layoutPath;
+    updateLayoutFileLabel();
+    statusBar()->showMessage(tr("Scheme saved: %1").arg(QFileInfo(layoutPath).fileName()), 4000);
+    return true;
+}
+
+void MainWindow::updateLayoutFileLabel()
+{
+    if (!m_layoutFileLabel) {
+        return;
+    }
+
+    const QString fileName = m_currentLayoutPath.isEmpty()
+        ? tr("No scheme file")
+        : QFileInfo(m_currentLayoutPath).fileName();
+    m_layoutFileLabel->setText(tr("Scheme: %1").arg(fileName));
+    m_layoutFileLabel->setToolTip(m_currentLayoutPath);
 }
 
 void MainWindow::setupMonitoringCharts()

@@ -101,3 +101,9 @@ void DiagramLinkItem::refreshTheme()
     setSelectedAppearance(m_selected);
     update();
 }
+
+void DiagramLinkItem::setLine(const QLineF &line)
+{
+    QGraphicsLineItem::setLine(line);
+    update();
+}

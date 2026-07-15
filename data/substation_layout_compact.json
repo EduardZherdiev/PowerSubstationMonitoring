@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "id": "Line-1", "title": "Line-1", "shape": "LineTerminal", "position": { "x": 40, "y": 80 }, "size": { "width": 120, "height": 90 }, "type": "Transmission Line", "status": "Ready", "location": "Infeed", "description": "Incoming line", "parameters": { "Voltage": "330 kV", "Current": "540 A" } },
+    { "id": "CB-1", "title": "CB-1", "shape": "Breaker", "position": { "x": 210, "y": 80 }, "size": { "width": 90, "height": 90 }, "type": "Circuit Breaker", "status": "Closed", "location": "Switch Bay", "description": "Breaker section", "parameters": { "Rated Current": "2000 A", "Trip Count": "12" } },
+    { "id": "TR-1", "title": "TR-1", "shape": "Transformer", "position": { "x": 360, "y": 60 }, "size": { "width": 170, "height": 110 }, "type": "Transformer", "status": "Loading", "location": "Transformer Bay", "description": "Step-down transformer", "parameters": { "Transformation Ratio": "33:12", "MVA": "63", "Load": "72%", "Temperature": "68 C", "Temperature Sensor": "TS-TR-1", "Rated Temperature": "90 C" } },
+    { "id": "Bus-1", "title": "Bus-1", "shape": "Busbar", "position": { "x": 590, "y": 80 }, "size": { "width": 220, "height": 50 }, "type": "Busbar", "status": "Energized", "location": "Main Bus", "description": "Main bus section", "parameters": {} },
+    { "id": "Line-2", "title": "Line-2", "shape": "LineTerminal", "position": { "x": 860, "y": 60 }, "size": { "width": 120, "height": 90 }, "type": "Transmission Line", "status": "Ready", "location": "Outfeed", "description": "Outgoing line", "parameters": {} }
+  ],
+  "connections": [
+    { "from": "Line-1", "to": "CB-1" },
+    { "from": "CB-1", "to": "TR-1" },
+    { "from": "TR-1", "to": "Bus-1" },
+    { "from": "Bus-1", "to": "Line-2" }
+  ]
+}

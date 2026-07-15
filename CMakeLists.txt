@@ -26,11 +26,8 @@ FetchContent_Declare(
     GIT_SHALLOW 1
     USES_TERMINAL_DOWNLOAD TRUE)
 
-FetchContent_GetProperties(breeze_stylesheets)
 if(NOT TARGET breeze)
-    if(NOT breeze_stylesheets_POPULATED)
-    FetchContent_Populate(breeze_stylesheets)
-    endif()
+    FetchContent_MakeAvailable(breeze_stylesheets)
 
     add_library(breeze STATIC "${breeze_stylesheets_SOURCE_DIR}/dist/breeze.qrc")
 
@@ -47,6 +44,8 @@ if(NOT TARGET breeze)
 endif()
 
 configure_file(data/substation_layout.json ${CMAKE_CURRENT_BINARY_DIR}/substation_layout.json COPYONLY)
+configure_file(data/substation_layout_ring.json ${CMAKE_CURRENT_BINARY_DIR}/substation_layout_ring.json COPYONLY)
+configure_file(data/substation_layout_compact.json ${CMAKE_CURRENT_BINARY_DIR}/substation_layout_compact.json COPYONLY)
 
 qt_add_executable(PowerSubstationMonitoring
     WIN32 MACOSX_BUNDLE

@@ -74,19 +74,19 @@ QColor themedColor(DiagramTheme::ColorRole role)
         case DiagramTheme::ColorRole::Grid:
             return palette.color(QPalette::Mid);
         case DiagramTheme::ColorRole::Busbar:
-            return palette.color(QPalette::Highlight);
+            return darkColor(DiagramTheme::ColorRole::Busbar);
         case DiagramTheme::ColorRole::Branch:
-            return palette.color(QPalette::Mid);
+            return darkColor(DiagramTheme::ColorRole::Branch);
         case DiagramTheme::ColorRole::Accent:
-            return palette.color(QPalette::Link);
+            return darkColor(DiagramTheme::ColorRole::Accent);
         case DiagramTheme::ColorRole::Selection:
             // Selection is part of the diagram visual language, not the system palette.
             return darkColor(DiagramTheme::ColorRole::Selection);
         case DiagramTheme::ColorRole::Border:
-            return palette.color(QPalette::Mid);
+            return darkColor(DiagramTheme::ColorRole::Border);
         case DiagramTheme::ColorRole::Text:
         case DiagramTheme::ColorRole::PanelText:
-            return palette.color(QPalette::Text);
+            return darkColor(DiagramTheme::ColorRole::Text);
         case DiagramTheme::ColorRole::NodeFill:
             // Keep equipment colors consistent with the dark theme.
             return darkColor(DiagramTheme::ColorRole::NodeFill);

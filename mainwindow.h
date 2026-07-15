@@ -13,6 +13,7 @@ class EquipmentTreeModel;
 class SubstationDiagramView;
 class QGraphicsScene;
 class QColor;
+class QLabel;
 class QModelIndex;
 enum class EventLevel;
 namespace SubstationLayout {
@@ -44,6 +45,9 @@ private:
     void configureParameterPanel();
     void connectInteractions();
     void loadSubstationLayout();
+    bool loadSubstationLayoutFile(const QString &layoutPath);
+    bool saveSubstationLayout(bool saveAs);
+    void updateLayoutFileLabel();
     void startTelemetryMonitoring();
     void processSnapshot(const SensorSnapshot &snapshot);
     void updateConnectionState(TelemetryService::ConnectionState state);
@@ -74,6 +78,8 @@ private:
     QGraphicsScene *m_currentScene;
     QGraphicsScene *m_temperatureScene;
     QString m_selectedEquipmentName;
+    QString m_currentLayoutPath;
+    QLabel *m_layoutFileLabel;
     SensorSnapshot m_lastSnapshot;
     bool m_hasLastSnapshot;
 };

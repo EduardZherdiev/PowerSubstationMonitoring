@@ -29,6 +29,7 @@ public:
 
     void setLayout(const SubstationLayout::Layout &layout);
     const SubstationLayout::Layout &substationLayout() const;
+    SubstationLayout::Layout layoutWithCurrentPositions() const;
     void fitToContent();
     void selectEquipment(const QString &equipmentKey);
     void refreshTheme();
@@ -41,14 +42,18 @@ private:
     {
         QString sourceKey;
         QString targetKey;
+        DiagramNodeItem *sourceNode = nullptr;
+        DiagramNodeItem *targetNode = nullptr;
         DiagramLinkItem *item = nullptr;
     };
 
     void buildDiagram();
     DiagramNodeItem *addNode(const SubstationLayout::NodeSpec &nodeSpec);
     void addConnection(const SubstationLayout::ConnectionSpec &connectionSpec,
-                       const QPointF &start,
-                       const QPointF &end);
+                       DiagramNodeItem *sourceNode,
+                       DiagramNodeItem *targetNode);
+    void updateConnectionLines();
+    void updateNodePosition(const QString &equipmentKey, const QPointF &position);
     void drawBackground(QPainter *painter, const QRectF &rect) override;
     void resizeEvent(QResizeEvent *event) override;
     QPointF anchorPoint(const DiagramNodeItem *node, const DiagramNodeItem *other) const;

@@ -7,6 +7,7 @@
 #include <QPainter>
 #include <QPen>
 #include <QPointF>
+#include <QVariant>
 
 DiagramNodeItem::DiagramNodeItem(const QString &equipmentKey,
                                  ShapeType shapeType,
@@ -22,6 +23,8 @@ DiagramNodeItem::DiagramNodeItem(const QString &equipmentKey,
 {
     setAcceptedMouseButtons(Qt::LeftButton);
     setFlag(QGraphicsItem::ItemIsSelectable, true);
+    setFlag(QGraphicsItem::ItemIsMovable, true);
+    setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
 }
 
 QRectF DiagramNodeItem::boundingRect() const
@@ -110,5 +113,13 @@ bool DiagramNodeItem::isSelectedAppearance() const
 void DiagramNodeItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     emit activated(m_equipmentKey);
-    event->accept();
+    QGraphicsObject::mousePressEvent(event);
+}
+
+QVariant DiagramNodeItem::itemChange(GraphicsItemChange change, const QVariant &value)
+{
+    if (change == QGraphicsItem::ItemPositionHasChanged) {
+        emit positionChanged(m_equipmentKey, value.toPointF());
+    }
+    return QGraphicsObject::itemChange(change, value);
 }

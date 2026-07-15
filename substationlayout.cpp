@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QSaveFile>
 
 namespace SubstationLayout {
 
@@ -83,6 +84,22 @@ DiagramTheme::ColorRole colorRoleFromString(const QString &roleName)
     return DiagramTheme::ColorRole::Branch;
 }
 
+namespace {
+
+QString colorRoleToString(DiagramTheme::ColorRole role)
+{
+    switch (role) {
+    case DiagramTheme::ColorRole::Busbar:
+        return QStringLiteral("Busbar");
+    case DiagramTheme::ColorRole::Accent:
+        return QStringLiteral("Accent");
+    default:
+        return QStringLiteral("Branch");
+    }
+}
+
+} // namespace
+
 bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage)
 {
     if (!layout) {
@@ -151,6 +168,80 @@ bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage)
     }
 
     *layout = parsedLayout;
+    return true;
+}
+
+bool saveToFile(const QString &path, const Layout &layout, QString *errorMessage)
+{
+    QJsonObject rootObject;
+    QJsonArray nodesArray;
+    for (const NodeSpec &node : layout.nodes) {
+        QJsonObject nodeObject;
+        nodeObject.insert(QStringLiteral("id"), node.id);
+        nodeObject.insert(QStringLiteral("title"), node.title);
+        nodeObject.insert(QStringLiteral("shape"), [&node]() {
+            switch (node.shape) {
+            case DiagramNodeItem::ShapeType::Busbar:
+                return QStringLiteral("Busbar");
+            case DiagramNodeItem::ShapeType::Breaker:
+                return QStringLiteral("Breaker");
+            case DiagramNodeItem::ShapeType::Transformer:
+                return QStringLiteral("Transformer");
+            case DiagramNodeItem::ShapeType::Station:
+                return QStringLiteral("Station");
+            case DiagramNodeItem::ShapeType::LineTerminal:
+                return QStringLiteral("LineTerminal");
+            }
+            return QStringLiteral("LineTerminal");
+        }());
+        nodeObject.insert(QStringLiteral("position"), QJsonObject{
+            {QStringLiteral("x"), node.position.x()},
+            {QStringLiteral("y"), node.position.y()}
+        });
+        nodeObject.insert(QStringLiteral("size"), QJsonObject{
+            {QStringLiteral("width"), node.size.width()},
+            {QStringLiteral("height"), node.size.height()}
+        });
+        nodeObject.insert(QStringLiteral("type"), node.type);
+        nodeObject.insert(QStringLiteral("status"), node.status);
+        nodeObject.insert(QStringLiteral("location"), node.location);
+        nodeObject.insert(QStringLiteral("description"), node.description);
+
+        QJsonObject parametersObject;
+        for (auto it = node.parameters.cbegin(); it != node.parameters.cend(); ++it) {
+            parametersObject.insert(it.key(), it.value());
+        }
+        nodeObject.insert(QStringLiteral("parameters"), parametersObject);
+        nodesArray.append(nodeObject);
+    }
+
+    QJsonArray connectionsArray;
+    for (const ConnectionSpec &connection : layout.connections) {
+        QJsonObject connectionObject;
+        connectionObject.insert(QStringLiteral("from"), connection.fromId);
+        connectionObject.insert(QStringLiteral("to"), connection.toId);
+        connectionObject.insert(QStringLiteral("role"), colorRoleToString(connection.colorRole));
+        connectionObject.insert(QStringLiteral("width"), connection.width);
+        connectionsArray.append(connectionObject);
+    }
+    rootObject.insert(QStringLiteral("nodes"), nodesArray);
+    rootObject.insert(QStringLiteral("connections"), connectionsArray);
+
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        if (errorMessage) {
+            *errorMessage = QCoreApplication::translate("SubstationLayout", "Unable to save layout file: %1").arg(path);
+        }
+        return false;
+    }
+
+    file.write(QJsonDocument(rootObject).toJson(QJsonDocument::Indented));
+    if (!file.commit()) {
+        if (errorMessage) {
+            *errorMessage = QCoreApplication::translate("SubstationLayout", "Unable to finalize layout file: %1").arg(path);
+        }
+        return false;
+    }
     return true;
 }
 

@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    { "id": "Line-1", "title": "Line-1", "shape": "LineTerminal", "position": { "x": 40, "y": 250 }, "size": { "width": 120, "height": 90 }, "type": "Transmission Line", "status": "Ready", "location": "North Infeed", "description": "Incoming line", "parameters": { "Voltage": "330 kV", "Current": "540 A" } },
+    { "id": "CB-1", "title": "CB-1", "shape": "Breaker", "position": { "x": 220, "y": 250 }, "size": { "width": 90, "height": 90 }, "type": "Circuit Breaker", "status": "Closed", "location": "Main Bay", "description": "Main circuit breaker", "parameters": { "Rated Current": "2000 A", "Trip Count": "12" } },
+    { "id": "Bus-1", "title": "Bus-1", "shape": "Busbar", "position": { "x": 380, "y": 210 }, "size": { "width": 220, "height": 50 }, "type": "Busbar", "status": "Energized", "location": "Main Bus", "description": "Main bus section", "parameters": {} },
+    { "id": "TR-1", "title": "TR-1", "shape": "Transformer", "position": { "x": 420, "y": 390 }, "size": { "width": 170, "height": 110 }, "type": "Transformer", "status": "Loading", "location": "Transformer Bay", "description": "Step-down transformer", "parameters": { "Transformation Ratio": "33:12", "MVA": "63", "Load": "72%", "Temperature": "68 C", "Temperature Sensor": "TS-TR-1", "Rated Temperature": "90 C" } },
+    { "id": "Bus-2", "title": "Bus-2", "shape": "Busbar", "position": { "x": 700, "y": 210 }, "size": { "width": 220, "height": 50 }, "type": "Busbar", "status": "Energized", "location": "Reserve Bus", "description": "Reserve bus section", "parameters": {} },
+    { "id": "CB-2", "title": "CB-2", "shape": "Breaker", "position": { "x": 970, "y": 180 }, "size": { "width": 90, "height": 90 }, "type": "Circuit Breaker", "status": "Closed", "location": "Reserve Bay", "description": "Reserve circuit breaker", "parameters": { "Rated Current": "1600 A", "Trip Count": "4" } },
+    { "id": "Line-2", "title": "Line-2", "shape": "LineTerminal", "position": { "x": 1140, "y": 180 }, "size": { "width": 120, "height": 90 }, "type": "Transmission Line", "status": "Ready", "location": "South Outfeed", "description": "Outgoing line", "parameters": {} },
+    { "id": "Line-3", "title": "Line-3", "shape": "LineTerminal", "position": { "x": 970, "y": 410 }, "size": { "width": 120, "height": 90 }, "type": "Transmission Line", "status": "Ready", "location": "Emergency Outfeed", "description": "Emergency outgoing line", "parameters": {} }
+  ],
+  "connections": [
+    { "from": "Line-1", "to": "CB-1" },
+    { "from": "CB-1", "to": "Bus-1" },
+    { "from": "Bus-1", "to": "TR-1" },
+    { "from": "TR-1", "to": "Bus-2" },
+    { "from": "Bus-2", "to": "CB-2" },
+    { "from": "CB-2", "to": "Line-2" },
+    { "from": "Bus-2", "to": "Line-3" },
+    { "from": "Line-3", "to": "Bus-1" }
+  ]
+}

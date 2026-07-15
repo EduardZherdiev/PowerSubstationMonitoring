@@ -3,6 +3,7 @@
 
 #include <QGraphicsObject>
 #include <QMap>
+#include <QPointF>
 #include <QSizeF>
 #include <QString>
 
@@ -11,6 +12,7 @@ class QGraphicsItem;
 class QPainter;
 class QStyleOptionGraphicsItem;
 class QWidget;
+class QVariant;
 
 class DiagramNodeItem : public QGraphicsObject
 {
@@ -40,9 +42,11 @@ public:
 
 signals:
     void activated(const QString &equipmentKey);
+    void positionChanged(const QString &equipmentKey, const QPointF &position);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
+    QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
 
 private:
     QString m_equipmentKey;

@@ -42,6 +42,7 @@ struct Layout
 
 QString defaultLayoutPath();
 bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage = nullptr);
+bool saveToFile(const QString &path, const Layout &layout, QString *errorMessage = nullptr);
 DiagramNodeItem::ShapeType shapeTypeFromString(const QString &shapeName);
 DiagramTheme::ColorRole colorRoleFromString(const QString &roleName);
 
