@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QGroupBox>
 #include <QLayout>
+#include <QDateEdit>
 #include <QRadioButton>
 #include <QWidget>
 #include <QSettings>
@@ -109,7 +110,9 @@ void applyTheme(QApplication &application, ThemeMode theme)
         if (qobject_cast<QRadioButton *>(widget)) {
             widget->setFixedHeight(28);
         } else if (qobject_cast<QComboBox *>(widget)) {
-            widget->setFixedHeight(28);
+            widget->setFixedHeight(32);
+        } else if (qobject_cast<QDateEdit *>(widget)) {
+            widget->setFixedHeight(32);
         }
         if (auto *groupBox = qobject_cast<QGroupBox *>(widget)) {
             if (QLayout *layout = groupBox->layout()) {

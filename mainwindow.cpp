@@ -329,8 +329,13 @@ void MainWindow::configureParameterPanel()
     ui->breakerStateCombo->setCurrentText(tr("Closed"));
     ui->period->setFixedHeight(28);
     ui->day->setFixedHeight(28);
-    ui->periodComboBox->setFixedHeight(28);
-    ui->breakerStateCombo->setFixedHeight(28);
+    ui->periodComboBox->setFixedHeight(32);
+    ui->breakerStateCombo->setFixedHeight(32);
+    ui->dateEdit->setFixedHeight(32);
+    ui->horizontalLayout_3->setAlignment(ui->period, Qt::AlignVCenter);
+    ui->horizontalLayout_3->setAlignment(ui->periodComboBox, Qt::AlignVCenter);
+    ui->horizontalLayout_3->setAlignment(ui->day, Qt::AlignVCenter);
+    ui->horizontalLayout_3->setAlignment(ui->dateEdit, Qt::AlignVCenter);
     ui->temperatureControlLabel->setVisible(false);
     ui->temperatureSpinBox->setVisible(false);
     ui->applyTemperatureButton->setVisible(false);
