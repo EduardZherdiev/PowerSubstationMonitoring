@@ -50,6 +50,7 @@ configure_file(data/substation_layout_compact.json ${CMAKE_CURRENT_BINARY_DIR}/s
 qt_add_executable(PowerSubstationMonitoring
     WIN32 MACOSX_BUNDLE
     main.cpp
+    resources/appIcon.rc
     appsettings.cpp
     mainwindow.cpp
     mainwindow.h
