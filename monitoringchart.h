@@ -12,24 +12,18 @@ class QObject;
 
 namespace MonitoringChart {
 
-class Scene : public QGraphicsScene
-{
-public:
+class Scene : public QGraphicsScene {
+  public:
     using QGraphicsScene::QGraphicsScene;
 
-protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
+  protected:
+    void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
 };
 
-Scene *createScene(QObject *parent = nullptr);
+Scene* createScene(QObject* parent = nullptr);
 
-void render(QGraphicsScene *scene,
-            const QVector<TelemetrySample> &history,
-            const QString &title,
-            const QString &unit,
-            const QColor &lineColor,
-            const QColor &textColor,
-            int windowSeconds);
+void render(QGraphicsScene* scene, const QVector<TelemetrySample>& history, const QString& title, const QString& unit,
+            const QColor& lineColor, const QColor& textColor, int windowSeconds);
 
 } // namespace MonitoringChart
 

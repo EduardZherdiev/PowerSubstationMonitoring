@@ -8,41 +8,27 @@
 #include <QPen>
 #include <cmath>
 
-DiagramLinkItem::DiagramLinkItem(const QString &equipmentKey,
-                                 const QString &targetKey,
-                                 const QLineF &line,
-                                 const QColor &normalColor,
-                                 qreal normalWidth,
-                                 QGraphicsItem *parent)
-    : QGraphicsLineItem(line, parent)
-    , m_sourceKey(equipmentKey)
-    , m_targetKey(targetKey)
-    , m_normalColor(normalColor)
-    , m_normalWidth(normalWidth)
-{
+DiagramLinkItem::DiagramLinkItem(const QString& equipmentKey, const QString& targetKey, const QLineF& line,
+                                 const QColor& normalColor, qreal normalWidth, QGraphicsItem* parent)
+    : QGraphicsLineItem(line, parent), m_sourceKey(equipmentKey), m_targetKey(targetKey), m_normalColor(normalColor),
+      m_normalWidth(normalWidth) {
     setPen(QPen(m_normalColor, m_normalWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     setZValue(-1);
 }
 
-QString DiagramLinkItem::equipmentKey() const
-{
+QString DiagramLinkItem::equipmentKey() const {
     return m_sourceKey;
 }
 
-QString DiagramLinkItem::sourceKey() const
-{
+QString DiagramLinkItem::sourceKey() const {
     return m_sourceKey;
 }
 
-QString DiagramLinkItem::targetKey() const
-{
+QString DiagramLinkItem::targetKey() const {
     return m_targetKey;
 }
 
-void DiagramLinkItem::paint(QPainter *painter,
-                            const QStyleOptionGraphicsItem *option,
-                            QWidget *widget)
-{
+void DiagramLinkItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) {
     Q_UNUSED(option)
     Q_UNUSED(widget)
 
@@ -87,29 +73,23 @@ void DiagramLinkItem::paint(QPainter *painter,
     painter->drawEllipse(endPoint, qMax<qreal>(3.0, lineWidth), qMax<qreal>(3.0, lineWidth));
 }
 
-void DiagramLinkItem::setSelectedAppearance(bool selected)
-{
+void DiagramLinkItem::setSelectedAppearance(bool selected) {
     m_selected = selected;
     if (selected) {
-        setPen(QPen(DiagramTheme::color(DiagramTheme::ColorRole::Selection),
-                    m_normalWidth + 1.5,
-                    Qt::SolidLine,
-                    Qt::RoundCap,
-                    Qt::RoundJoin));
+        setPen(QPen(DiagramTheme::color(DiagramTheme::ColorRole::Selection), m_normalWidth + 1.5, Qt::SolidLine,
+                    Qt::RoundCap, Qt::RoundJoin));
     } else {
         setPen(QPen(m_normalColor, m_normalWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     }
 }
 
-void DiagramLinkItem::refreshTheme()
-{
+void DiagramLinkItem::refreshTheme() {
     m_normalColor = DiagramTheme::color(DiagramTheme::ColorRole::Branch);
     setSelectedAppearance(m_selected);
     update();
 }
 
-void DiagramLinkItem::setLine(const QLineF &line)
-{
+void DiagramLinkItem::setLine(const QLineF& line) {
     QGraphicsLineItem::setLine(line);
     update();
 }

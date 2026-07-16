@@ -8,8 +8,7 @@
 
 namespace PowerFlowCalculator {
 
-struct NodeState
-{
+struct NodeState {
     bool energized = false;
     bool hasVoltage = false;
     bool hasCurrent = false;
@@ -21,11 +20,10 @@ struct NodeState
     QString note;
 };
 
-QMap<QString, NodeState> calculate(
-    const SubstationLayout::Layout &layout,
-    const QMap<QString, double> &temperatureBySensor = QMap<QString, double>());
-void annotateLayout(SubstationLayout::Layout *layout,
-                    const QMap<QString, double> &temperatureBySensor = QMap<QString, double>());
+QMap<QString, NodeState> calculate(const SubstationLayout::Layout& layout,
+                                   const QMap<QString, double>& temperatureBySensor = QMap<QString, double>());
+void annotateLayout(SubstationLayout::Layout* layout,
+                    const QMap<QString, double>& temperatureBySensor = QMap<QString, double>());
 
 } // namespace PowerFlowCalculator
 

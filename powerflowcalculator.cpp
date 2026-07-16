@@ -9,13 +9,11 @@
 
 namespace {
 
-QString normalize(const QString &value)
-{
+QString normalize(const QString& value) {
     return value.trimmed().toLower();
 }
 
-QString formatNumber(double value, int precision = 2)
-{
+QString formatNumber(double value, int precision = 2) {
     QString text = QString::number(value, 'f', precision);
     while (text.contains('.') && (text.endsWith('0') || text.endsWith('.'))) {
         if (text.endsWith('.')) {
@@ -27,8 +25,7 @@ QString formatNumber(double value, int precision = 2)
     return text;
 }
 
-double parseFirstNumber(const QString &value, bool *ok = nullptr)
-{
+double parseFirstNumber(const QString& value, bool* ok = nullptr) {
     static const QRegularExpression numberPattern(QStringLiteral(R"(([+-]?\d+(?:\.\d+)?))"));
     const QRegularExpressionMatch match = numberPattern.match(value);
     if (!match.hasMatch()) {
@@ -46,8 +43,7 @@ double parseFirstNumber(const QString &value, bool *ok = nullptr)
     return parsed ? number : 0.0;
 }
 
-double parseVoltageKv(const QString &value, bool *ok = nullptr)
-{
+double parseVoltageKv(const QString& value, bool* ok = nullptr) {
     const QString normalized = normalize(value);
     bool parsed = false;
     const double number = parseFirstNumber(value, &parsed);
@@ -85,8 +81,7 @@ double parseVoltageKv(const QString &value, bool *ok = nullptr)
     return number;
 }
 
-double parseCurrentA(const QString &value, bool *ok = nullptr)
-{
+double parseCurrentA(const QString& value, bool* ok = nullptr) {
     bool parsed = false;
     const double number = parseFirstNumber(value, &parsed);
     if (ok) {
@@ -95,8 +90,7 @@ double parseCurrentA(const QString &value, bool *ok = nullptr)
     return parsed ? number : 0.0;
 }
 
-double parseMva(const QString &value, bool *ok = nullptr)
-{
+double parseMva(const QString& value, bool* ok = nullptr) {
     bool parsed = false;
     const double number = parseFirstNumber(value, &parsed);
     if (ok) {
@@ -105,8 +99,7 @@ double parseMva(const QString &value, bool *ok = nullptr)
     return parsed ? number : 0.0;
 }
 
-double parsePercent(const QString &value, bool *ok = nullptr)
-{
+double parsePercent(const QString& value, bool* ok = nullptr) {
     bool parsed = false;
     const double number = parseFirstNumber(value, &parsed);
     if (ok) {
@@ -115,8 +108,7 @@ double parsePercent(const QString &value, bool *ok = nullptr)
     return parsed ? number : 0.0;
 }
 
-double parseTransformerRatioText(const QString &value, bool *ok = nullptr)
-{
+double parseTransformerRatioText(const QString& value, bool* ok = nullptr) {
     const QString normalized = normalize(value);
     const QStringList parts = normalized.split(QLatin1Char(':'), Qt::SkipEmptyParts);
     if (parts.size() == 2) {
@@ -140,8 +132,7 @@ double parseTransformerRatioText(const QString &value, bool *ok = nullptr)
     return parsed ? number : 0.0;
 }
 
-double parseTemperatureC(const QString &value, bool *ok = nullptr)
-{
+double parseTemperatureC(const QString& value, bool* ok = nullptr) {
     bool parsed = false;
     const double number = parseFirstNumber(value, &parsed);
     if (ok) {
@@ -150,18 +141,15 @@ double parseTemperatureC(const QString &value, bool *ok = nullptr)
     return parsed ? number : 0.0;
 }
 
-double parseTransformerRatio(const SubstationLayout::NodeSpec &node, bool *ok = nullptr)
-{
+double parseTransformerRatio(const SubstationLayout::NodeSpec& node, bool* ok = nullptr) {
     bool parsed = false;
     double ratio = 0.0;
     QMap<QString, QString>::const_iterator it;
 
-    const QStringList ratioKeys = {QStringLiteral("Transformation Ratio"),
-                                   QStringLiteral("Transformation Coefficient"),
-                                   QStringLiteral("Transformer Ratio"),
-                                   QStringLiteral("Turns Ratio"),
+    const QStringList ratioKeys = {QStringLiteral("Transformation Ratio"), QStringLiteral("Transformation Coefficient"),
+                                   QStringLiteral("Transformer Ratio"), QStringLiteral("Turns Ratio"),
                                    QStringLiteral("Ratio")};
-    for (const QString &key : ratioKeys) {
+    for (const QString& key : ratioKeys) {
         it = node.parameters.constFind(key);
         if (it != node.parameters.constEnd()) {
             ratio = parseTransformerRatioText(it.value(), &parsed);
@@ -199,13 +187,11 @@ double parseTransformerRatio(const SubstationLayout::NodeSpec &node, bool *ok = 
     return ratio;
 }
 
-bool isBreakerClosed(const SubstationLayout::NodeSpec &node)
-{
+bool isBreakerClosed(const SubstationLayout::NodeSpec& node) {
     return normalize(node.status).contains(QStringLiteral("closed"));
 }
 
-QString elementKind(const SubstationLayout::NodeSpec &node)
-{
+QString elementKind(const SubstationLayout::NodeSpec& node) {
     const QString type = normalize(node.type);
     if (type.contains(QStringLiteral("breaker"))) {
         return QStringLiteral("breaker");
@@ -222,26 +208,19 @@ QString elementKind(const SubstationLayout::NodeSpec &node)
     return QStringLiteral("device");
 }
 
-QString voltageText(const PowerFlowCalculator::NodeState &state)
-{
-    return state.hasVoltage ? QStringLiteral("%1 kV").arg(formatNumber(state.voltageKv, 2))
-                            : QStringLiteral("-");
+QString voltageText(const PowerFlowCalculator::NodeState& state) {
+    return state.hasVoltage ? QStringLiteral("%1 kV").arg(formatNumber(state.voltageKv, 2)) : QStringLiteral("-");
 }
 
-QString currentText(const PowerFlowCalculator::NodeState &state)
-{
-    return state.hasCurrent ? QStringLiteral("%1 A").arg(formatNumber(state.currentA, 2))
-                            : QStringLiteral("-");
+QString currentText(const PowerFlowCalculator::NodeState& state) {
+    return state.hasCurrent ? QStringLiteral("%1 A").arg(formatNumber(state.currentA, 2)) : QStringLiteral("-");
 }
 
-QString temperatureText(const PowerFlowCalculator::NodeState &state)
-{
-    return state.hasTemperature ? QStringLiteral("%1 C").arg(formatNumber(state.temperatureC, 1))
-                                : QStringLiteral("-");
+QString temperatureText(const PowerFlowCalculator::NodeState& state) {
+    return state.hasTemperature ? QStringLiteral("%1 C").arg(formatNumber(state.temperatureC, 1)) : QStringLiteral("-");
 }
 
-PowerFlowCalculator::NodeState sourceStateFor(const SubstationLayout::NodeSpec &node)
-{
+PowerFlowCalculator::NodeState sourceStateFor(const SubstationLayout::NodeSpec& node) {
     PowerFlowCalculator::NodeState state;
     state.energized = true;
 
@@ -262,9 +241,8 @@ PowerFlowCalculator::NodeState sourceStateFor(const SubstationLayout::NodeSpec &
     return state;
 }
 
-PowerFlowCalculator::NodeState propagateThroughBreaker(
-    const PowerFlowCalculator::NodeState &incoming, const SubstationLayout::NodeSpec &node)
-{
+PowerFlowCalculator::NodeState propagateThroughBreaker(const PowerFlowCalculator::NodeState& incoming,
+                                                       const SubstationLayout::NodeSpec& node) {
     if (!isBreakerClosed(node)) {
         PowerFlowCalculator::NodeState blocked;
         blocked.energized = false;
@@ -278,9 +256,8 @@ PowerFlowCalculator::NodeState propagateThroughBreaker(
     return state;
 }
 
-PowerFlowCalculator::NodeState propagateThroughTransformer(
-    const PowerFlowCalculator::NodeState &incoming, const SubstationLayout::NodeSpec &node)
-{
+PowerFlowCalculator::NodeState propagateThroughTransformer(const PowerFlowCalculator::NodeState& incoming,
+                                                           const SubstationLayout::NodeSpec& node) {
     PowerFlowCalculator::NodeState state = incoming;
     state.note = QStringLiteral("Transformer");
 
@@ -308,8 +285,7 @@ PowerFlowCalculator::NodeState propagateThroughTransformer(
 
         if (currentOk && state.hasVoltage && state.voltageKv > 0.0) {
             const double apparentPowerMva = ratedMva * qMax(0.0, loadPercent) / 100.0;
-            state.currentA = (apparentPowerMva * 1'000'000.0)
-                             / (qSqrt(3.0) * state.voltageKv * 1000.0);
+            state.currentA = (apparentPowerMva * 1'000'000.0) / (qSqrt(3.0) * state.voltageKv * 1000.0);
             state.hasCurrent = true;
         }
     }
@@ -324,8 +300,7 @@ PowerFlowCalculator::NodeState propagateThroughTransformer(
         state.hasCurrent = true;
     }
 
-    const auto temperatureSensorIt = node.parameters.constFind(
-        QStringLiteral("Temperature Sensor"));
+    const auto temperatureSensorIt = node.parameters.constFind(QStringLiteral("Temperature Sensor"));
     if (temperatureSensorIt != node.parameters.constEnd()) {
         const QString sensorId = temperatureSensorIt.value().trimmed();
         if (!sensorId.isEmpty()) {
@@ -336,10 +311,9 @@ PowerFlowCalculator::NodeState propagateThroughTransformer(
     return state;
 }
 
-PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &node,
-                                             const PowerFlowCalculator::NodeState &incoming,
-                                             const QMap<QString, double> &temperatureBySensor)
-{
+PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec& node,
+                                             const PowerFlowCalculator::NodeState& incoming,
+                                             const QMap<QString, double>& temperatureBySensor) {
     const QString kind = elementKind(node);
     if (kind == QStringLiteral("breaker")) {
         return propagateThroughBreaker(incoming, node);
@@ -347,8 +321,7 @@ PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &n
 
     if (kind == QStringLiteral("transformer")) {
         PowerFlowCalculator::NodeState state = propagateThroughTransformer(incoming, node);
-        const auto temperatureSensorIt = node.parameters.constFind(
-            QStringLiteral("Temperature Sensor"));
+        const auto temperatureSensorIt = node.parameters.constFind(QStringLiteral("Temperature Sensor"));
         if (temperatureSensorIt != node.parameters.constEnd()) {
             const QString sensorId = temperatureSensorIt.value().trimmed();
             const auto sensorIt = temperatureBySensor.constFind(sensorId);
@@ -359,8 +332,7 @@ PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &n
         }
 
         if (!state.hasTemperature) {
-            const auto directTemperatureIt = node.parameters.constFind(
-                QStringLiteral("Temperature"));
+            const auto directTemperatureIt = node.parameters.constFind(QStringLiteral("Temperature"));
             if (directTemperatureIt != node.parameters.constEnd()) {
                 bool temperatureOk = false;
                 state.temperatureC = parseTemperatureC(directTemperatureIt.value(), &temperatureOk);
@@ -377,8 +349,7 @@ PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &n
     return state;
 }
 
-void annotateNode(SubstationLayout::NodeSpec *node, const PowerFlowCalculator::NodeState &state)
-{
+void annotateNode(SubstationLayout::NodeSpec* node, const PowerFlowCalculator::NodeState& state) {
     if (!node) {
         return;
     }
@@ -392,8 +363,7 @@ void annotateNode(SubstationLayout::NodeSpec *node, const PowerFlowCalculator::N
                             state.energized ? QStringLiteral("Yes") : QStringLiteral("No"));
     node->parameters.insert(QStringLiteral("Upstream"),
                             state.upstreamId.isEmpty() ? QStringLiteral("-") : state.upstreamId);
-    node->parameters.insert(QStringLiteral("Flow Note"),
-                            state.note.isEmpty() ? QStringLiteral("-") : state.note);
+    node->parameters.insert(QStringLiteral("Flow Note"), state.note.isEmpty() ? QStringLiteral("-") : state.note);
 
     if (state.hasTemperature) {
         node->parameters.insert(QStringLiteral("Temperature"), temperatureText(state));
@@ -404,31 +374,30 @@ void annotateNode(SubstationLayout::NodeSpec *node, const PowerFlowCalculator::N
 
 namespace PowerFlowCalculator {
 
-QMap<QString, NodeState> calculate(const SubstationLayout::Layout &layout,
-                                   const QMap<QString, double> &temperatureBySensor)
-{
+QMap<QString, NodeState> calculate(const SubstationLayout::Layout& layout,
+                                   const QMap<QString, double>& temperatureBySensor) {
     QMap<QString, NodeState> states;
     if (layout.nodes.isEmpty()) {
         return states;
     }
 
-    QHash<QString, const SubstationLayout::NodeSpec *> nodeById;
+    QHash<QString, const SubstationLayout::NodeSpec*> nodeById;
     QHash<QString, QStringList> childrenById;
     QHash<QString, int> incomingCount;
 
-    for (const SubstationLayout::NodeSpec &node : layout.nodes) {
+    for (const SubstationLayout::NodeSpec& node : layout.nodes) {
         nodeById.insert(node.id, &node);
         incomingCount.insert(node.id, 0);
     }
 
-    for (const SubstationLayout::ConnectionSpec &connection : layout.connections) {
+    for (const SubstationLayout::ConnectionSpec& connection : layout.connections) {
         childrenById[connection.fromId].append(connection.toId);
         incomingCount[connection.toId] = incomingCount.value(connection.toId, 0) + 1;
     }
 
     QString sourceId = QStringLiteral("Line-1");
     if (!nodeById.contains(sourceId)) {
-        for (const SubstationLayout::NodeSpec &node : layout.nodes) {
+        for (const SubstationLayout::NodeSpec& node : layout.nodes) {
             if (incomingCount.value(node.id, 0) == 0) {
                 sourceId = node.id;
                 break;
@@ -448,7 +417,7 @@ QMap<QString, NodeState> calculate(const SubstationLayout::Layout &layout,
     visited.insert(sourceId);
     QString currentId;
     NodeState nextState;
-    const SubstationLayout::NodeSpec *childNode;
+    const SubstationLayout::NodeSpec* childNode;
     NodeState currentState;
     QStringList children;
     while (!queue.isEmpty()) {
@@ -456,7 +425,7 @@ QMap<QString, NodeState> calculate(const SubstationLayout::Layout &layout,
         currentState = states.value(currentId);
 
         children = childrenById.value(currentId);
-        for (const QString &childId : children) {
+        for (const QString& childId : children) {
             if (!nodeById.contains(childId)) {
                 continue;
             }
@@ -486,16 +455,14 @@ QMap<QString, NodeState> calculate(const SubstationLayout::Layout &layout,
     return states;
 }
 
-void annotateLayout(SubstationLayout::Layout *layout,
-                    const QMap<QString, double> &temperatureBySensor)
-{
+void annotateLayout(SubstationLayout::Layout* layout, const QMap<QString, double>& temperatureBySensor) {
     if (!layout) {
         return;
     }
 
     const QMap<QString, NodeState> states = calculate(*layout, temperatureBySensor);
     auto stateIt = states.constBegin();
-    for (SubstationLayout::NodeSpec &node : layout->nodes) {
+    for (SubstationLayout::NodeSpec& node : layout->nodes) {
         stateIt = states.constFind(node.id);
         if (stateIt != states.constEnd()) {
             annotateNode(&node, stateIt.value());

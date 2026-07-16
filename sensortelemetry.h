@@ -4,8 +4,7 @@
 #include <QMap>
 #include <QStringList>
 
-struct SensorSnapshot
-{
+struct SensorSnapshot {
     double sourceVoltageKv = 330.0;
     double sourceCurrentA = 540.0;
     double transformerTemperatureC = 68.0;
@@ -15,21 +14,19 @@ struct SensorSnapshot
     QStringList notes;
 };
 
-class ITelemetrySource
-{
-public:
+class ITelemetrySource {
+  public:
     virtual ~ITelemetrySource() = default;
-    virtual bool tryReadSnapshot(SensorSnapshot *snapshot) = 0;
+    virtual bool tryReadSnapshot(SensorSnapshot* snapshot) = 0;
 };
 
-class SensorTelemetrySimulator final : public ITelemetrySource
-{
-public:
+class SensorTelemetrySimulator final : public ITelemetrySource {
+  public:
     SensorTelemetrySimulator();
 
-    bool tryReadSnapshot(SensorSnapshot *snapshot) override;
+    bool tryReadSnapshot(SensorSnapshot* snapshot) override;
 
-private:
+  private:
     double m_phase;
     bool m_breakerClosed;
 };

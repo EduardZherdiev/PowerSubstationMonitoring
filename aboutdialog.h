@@ -8,19 +8,18 @@ namespace Ui {
 class AboutDialog;
 }
 
-class AboutDialog : public QDialog
-{
+class AboutDialog : public QDialog {
     Q_OBJECT
 
-public:
-    explicit AboutDialog(QWidget *parent = nullptr);
+  public:
+    explicit AboutDialog(QWidget* parent = nullptr);
     ~AboutDialog();
 
-protected:
-    void changeEvent(QEvent *event) override;
+  protected:
+    void changeEvent(QEvent* event) override;
 
-private:
-    Ui::AboutDialog *ui;
+  private:
+    Ui::AboutDialog* ui;
 };
 
 #endif // ABOUTDIALOG_H

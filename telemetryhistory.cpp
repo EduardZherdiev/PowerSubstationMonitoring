@@ -11,19 +11,16 @@
 
 namespace {
 
-QHash<int, QVector<TelemetrySample>> &seriesStorage()
-{
+QHash<int, QVector<TelemetrySample>>& seriesStorage() {
     static QHash<int, QVector<TelemetrySample>> storage;
     return storage;
 }
 
-int seriesKey(TelemetryHistory::SeriesKind kind)
-{
+int seriesKey(TelemetryHistory::SeriesKind kind) {
     return static_cast<int>(kind);
 }
 
-void ensureSeriesLoaded(TelemetryHistory::SeriesKind kind)
-{
+void ensureSeriesLoaded(TelemetryHistory::SeriesKind kind) {
     static QSet<int> loadedSeries;
     const int key = seriesKey(kind);
     if (loadedSeries.contains(key)) {
@@ -31,17 +28,14 @@ void ensureSeriesLoaded(TelemetryHistory::SeriesKind kind)
     }
 
     QVector<TelemetrySample> samples = HistoryPersistence::loadTelemetry(kind);
-    std::sort(samples.begin(),
-              samples.end(),
-              [](const TelemetrySample &left, const TelemetrySample &right) {
-                  return left.timestamp < right.timestamp;
-              });
+    std::sort(samples.begin(), samples.end(), [](const TelemetrySample& left, const TelemetrySample& right) {
+        return left.timestamp < right.timestamp;
+    });
     seriesStorage().insert(key, samples);
     loadedSeries.insert(key);
 }
 
-int sampleStepSeconds(int windowSeconds)
-{
+int sampleStepSeconds(int windowSeconds) {
     if (windowSeconds <= 60) {
         return 1;
     }
@@ -54,8 +48,7 @@ int sampleStepSeconds(int windowSeconds)
     return 15 * 60;
 }
 
-QDateTime alignTimestamp(const QDateTime &timestamp, int stepSeconds)
-{
+QDateTime alignTimestamp(const QDateTime& timestamp, int stepSeconds) {
     if (!timestamp.isValid()) {
         return timestamp;
     }
@@ -66,21 +59,19 @@ QDateTime alignTimestamp(const QDateTime &timestamp, int stepSeconds)
     return QDateTime::fromSecsSinceEpoch(alignedSecs, timestamp.timeZone());
 }
 
-double seedOffsetForDate(const QDateTime &timestamp)
-{
+double seedOffsetForDate(const QDateTime& timestamp) {
     const int daySeed = timestamp.date().dayOfYear();
     return (daySeed % 17) * 0.12;
 }
 
-double seriesValue(TelemetryHistory::SeriesKind kind, const QDateTime &timestamp)
-{
+double seriesValue(TelemetryHistory::SeriesKind kind, const QDateTime& timestamp) {
     const double seconds = static_cast<double>(timestamp.toSecsSinceEpoch());
     const double dayOffset = seedOffsetForDate(timestamp);
 
     switch (kind) {
     case TelemetryHistory::SeriesKind::Voltage:
-        return 330.0 + qSin(seconds / 240.0 + dayOffset) * 2.2 + qSin(seconds / 45.0) * 0.3
-               + qCos(seconds / 600.0) * 0.4;
+        return 330.0 + qSin(seconds / 240.0 + dayOffset) * 2.2 + qSin(seconds / 45.0) * 0.3 +
+               qCos(seconds / 600.0) * 0.4;
     case TelemetryHistory::SeriesKind::Current:
         return 540.0 + qSin(seconds / 160.0 + 0.6 + dayOffset) * 20.0 + qCos(seconds / 52.0) * 2.6;
     case TelemetryHistory::SeriesKind::Temperature:
@@ -90,10 +81,8 @@ double seriesValue(TelemetryHistory::SeriesKind kind, const QDateTime &timestamp
     return 0.0;
 }
 
-QVector<TelemetrySample> generatedSeries(TelemetryHistory::SeriesKind kind,
-                                         const QDateTime &endTime,
-                                         int windowSeconds)
-{
+QVector<TelemetrySample> generatedSeries(TelemetryHistory::SeriesKind kind, const QDateTime& endTime,
+                                         int windowSeconds) {
     QVector<TelemetrySample> samples;
     if (!endTime.isValid() || windowSeconds <= 0) {
         return samples;
@@ -122,33 +111,26 @@ QVector<TelemetrySample> generatedSeries(TelemetryHistory::SeriesKind kind,
 
 namespace TelemetryHistory {
 
-void appendSample(SeriesKind kind, const TelemetrySample &sample)
-{
+void appendSample(SeriesKind kind, const TelemetrySample& sample) {
     if (!sample.timestamp.isValid()) {
         return;
     }
 
     ensureSeriesLoaded(kind);
-    QVector<TelemetrySample> &samples = seriesStorage()[seriesKey(kind)];
+    QVector<TelemetrySample>& samples = seriesStorage()[seriesKey(kind)];
     samples.append(sample);
     HistoryPersistence::appendTelemetry(kind, sample);
 
     const QDateTime cutoff = sample.timestamp.addDays(-31);
-    const auto firstRetained = std::lower_bound(samples.cbegin(),
-                                                samples.cend(),
-                                                cutoff,
-                                                [](const TelemetrySample &stored,
-                                                   const QDateTime &threshold) {
-                                                    return stored.timestamp < threshold;
-                                                });
+    const auto firstRetained = std::lower_bound(
+        samples.cbegin(), samples.cend(), cutoff,
+        [](const TelemetrySample& stored, const QDateTime& threshold) { return stored.timestamp < threshold; });
     if (firstRetained != samples.cbegin()) {
-        samples.erase(samples.begin(),
-                      samples.begin() + std::distance(samples.cbegin(), firstRetained));
+        samples.erase(samples.begin(), samples.begin() + std::distance(samples.cbegin(), firstRetained));
     }
 }
 
-QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int windowSeconds)
-{
+QVector<TelemetrySample> series(SeriesKind kind, const QDateTime& endTime, int windowSeconds) {
     ensureSeriesLoaded(kind);
     QVector<TelemetrySample> filtered = generatedSeries(kind, endTime, windowSeconds);
     if (!endTime.isValid() || windowSeconds <= 0) {
@@ -159,7 +141,7 @@ QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int w
     if (storageIt == seriesStorage().cend()) {
         return filtered;
     }
-    const QVector<TelemetrySample> &samples = storageIt.value();
+    const QVector<TelemetrySample>& samples = storageIt.value();
     if (filtered.isEmpty() || samples.isEmpty()) {
         return filtered;
     }
@@ -174,16 +156,11 @@ QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int w
         indexByTimestamp.insert(filtered.at(i).timestamp.toSecsSinceEpoch(), i);
     }
 
-    const auto firstSample = std::lower_bound(samples.cbegin(),
-                                              samples.cend(),
-                                              startTime,
-                                              [](const TelemetrySample &stored,
-                                                 const QDateTime &threshold) {
-                                                  return stored.timestamp < threshold;
-                                              });
-    for (auto sampleIt = firstSample; sampleIt != samples.cend() && sampleIt->timestamp <= endTime;
-         ++sampleIt) {
-        const TelemetrySample &sample = *sampleIt;
+    const auto firstSample = std::lower_bound(
+        samples.cbegin(), samples.cend(), startTime,
+        [](const TelemetrySample& stored, const QDateTime& threshold) { return stored.timestamp < threshold; });
+    for (auto sampleIt = firstSample; sampleIt != samples.cend() && sampleIt->timestamp <= endTime; ++sampleIt) {
+        const TelemetrySample& sample = *sampleIt;
         const QDateTime alignedSampleTime = alignTimestamp(sample.timestamp, stepSeconds);
         const auto it = indexByTimestamp.constFind(alignedSampleTime.toSecsSinceEpoch());
         if (it != indexByTimestamp.constEnd()) {

@@ -7,8 +7,7 @@ namespace {
 
 AppSettings::ThemeMode currentTheme = AppSettings::ThemeMode::Dark;
 
-QColor darkColor(DiagramTheme::ColorRole role)
-{
+QColor darkColor(DiagramTheme::ColorRole role) {
     switch (role) {
     case DiagramTheme::ColorRole::Background:
         return QColor::fromRgb(0x0B1220);
@@ -36,8 +35,7 @@ QColor darkColor(DiagramTheme::ColorRole role)
     return QColor::fromRgb(0xFFFFFF);
 }
 
-QColor lightColor(DiagramTheme::ColorRole role)
-{
+QColor lightColor(DiagramTheme::ColorRole role) {
     switch (role) {
     case DiagramTheme::ColorRole::Background:
         return QColor::fromRgb(0xF5F7FA);
@@ -64,8 +62,7 @@ QColor lightColor(DiagramTheme::ColorRole role)
     return QColor::fromRgb(0x17212B);
 }
 
-QColor themedColor(DiagramTheme::ColorRole role)
-{
+QColor themedColor(DiagramTheme::ColorRole role) {
     if (currentTheme == AppSettings::ThemeMode::System) {
         const QPalette palette = QApplication::palette();
         switch (role) {
@@ -103,13 +100,11 @@ QColor themedColor(DiagramTheme::ColorRole role)
 } // namespace
 
 namespace DiagramTheme {
-void setTheme(AppSettings::ThemeMode theme)
-{
+void setTheme(AppSettings::ThemeMode theme) {
     currentTheme = theme;
 }
 
-QColor color(ColorRole role)
-{
+QColor color(ColorRole role) {
     return themedColor(role);
 }
 } // namespace DiagramTheme

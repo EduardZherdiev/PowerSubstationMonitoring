@@ -9,7 +9,7 @@ struct Layout;
 
 namespace TelemetryLayoutMapper {
 
-void apply(SubstationLayout::Layout *layout, const SensorSnapshot &snapshot);
+void apply(SubstationLayout::Layout* layout, const SensorSnapshot& snapshot);
 
 } // namespace TelemetryLayoutMapper
 

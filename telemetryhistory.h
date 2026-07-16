@@ -4,8 +4,7 @@
 #include <QDateTime>
 #include <QVector>
 
-struct TelemetrySample
-{
+struct TelemetrySample {
     QDateTime timestamp;
     double value = 0.0;
 };
@@ -14,8 +13,8 @@ namespace TelemetryHistory {
 
 enum class SeriesKind { Voltage, Current, Temperature };
 
-void appendSample(SeriesKind kind, const TelemetrySample &sample);
-QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int windowSeconds);
+void appendSample(SeriesKind kind, const TelemetrySample& sample);
+QVector<TelemetrySample> series(SeriesKind kind, const QDateTime& endTime, int windowSeconds);
 
 } // namespace TelemetryHistory
 

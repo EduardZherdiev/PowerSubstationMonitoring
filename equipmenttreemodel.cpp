@@ -7,8 +7,7 @@
 
 namespace {
 
-QString translatedType(const QString &type)
-{
+QString translatedType(const QString& type) {
     if (type == QStringLiteral("Transmission Line")) {
         return QCoreApplication::translate("Equipment", "Transmission Line");
     }
@@ -24,8 +23,7 @@ QString translatedType(const QString &type)
     return type;
 }
 
-QString translatedStatus(const QString &status)
-{
+QString translatedStatus(const QString& status) {
     if (status == QStringLiteral("Ready")) {
         return QCoreApplication::translate("Equipment", "Ready");
     }
@@ -54,13 +52,10 @@ QString translatedStatus(const QString &status)
 
 #include <QMap>
 
-EquipmentTreeModel::EquipmentTreeModel(QObject *parent)
-    : QAbstractItemModel(parent)
-    , m_rootItem(new Equipment("Root"))
-{}
+EquipmentTreeModel::EquipmentTreeModel(QObject* parent)
+    : QAbstractItemModel(parent), m_rootItem(new Equipment("Root")) {}
 
-void EquipmentTreeModel::setLayout(const SubstationLayout::Layout &layout)
-{
+void EquipmentTreeModel::setLayout(const SubstationLayout::Layout& layout) {
     beginResetModel();
     delete m_rootItem;
     m_rootItem = new Equipment("Root");
@@ -68,15 +63,14 @@ void EquipmentTreeModel::setLayout(const SubstationLayout::Layout &layout)
     endResetModel();
 }
 
-void EquipmentTreeModel::updateLayout(const SubstationLayout::Layout &layout)
-{
+void EquipmentTreeModel::updateLayout(const SubstationLayout::Layout& layout) {
     if (m_rootItem->childCount() != layout.nodes.size()) {
         setLayout(layout);
         return;
     }
 
-    for (const SubstationLayout::NodeSpec &node : layout.nodes) {
-        Equipment *equipment = equipmentByName(node.id);
+    for (const SubstationLayout::NodeSpec& node : layout.nodes) {
+        Equipment* equipment = equipmentByName(node.id);
         if (!equipment) {
             setLayout(layout);
             return;
@@ -85,31 +79,26 @@ void EquipmentTreeModel::updateLayout(const SubstationLayout::Layout &layout)
         equipment->update(node.type, node.status, node.location, node.description, node.parameters);
         const QModelIndex firstColumn = indexForEquipment(equipment);
         if (firstColumn.isValid()) {
-            emit dataChanged(firstColumn,
-                             index(firstColumn.row(), columnCount() - 1, firstColumn.parent()),
+            emit dataChanged(firstColumn, index(firstColumn.row(), columnCount() - 1, firstColumn.parent()),
                              {Qt::DisplayRole});
         }
     }
 }
 
-void EquipmentTreeModel::retranslate()
-{
+void EquipmentTreeModel::retranslate() {
     emit headerDataChanged(Qt::Horizontal, 0, columnCount() - 1);
     emit layoutChanged();
 }
 
-EquipmentTreeModel::~EquipmentTreeModel()
-{
+EquipmentTreeModel::~EquipmentTreeModel() {
     delete m_rootItem;
 }
 
-Equipment *EquipmentTreeModel::equipmentForIndex(const QModelIndex &index) const
-{
+Equipment* EquipmentTreeModel::equipmentForIndex(const QModelIndex& index) const {
     return itemFromIndex(index);
 }
 
-QModelIndex EquipmentTreeModel::indexForEquipment(Equipment *equipment) const
-{
+QModelIndex EquipmentTreeModel::indexForEquipment(Equipment* equipment) const {
     if (!equipment || equipment == m_rootItem) {
         return QModelIndex();
     }
@@ -117,19 +106,17 @@ QModelIndex EquipmentTreeModel::indexForEquipment(Equipment *equipment) const
     return indexForEquipmentRecursive(m_rootItem, equipment, QModelIndex());
 }
 
-Equipment *EquipmentTreeModel::equipmentByName(const QString &name) const
-{
+Equipment* EquipmentTreeModel::equipmentByName(const QString& name) const {
     return equipmentByNameRecursive(m_rootItem, name);
 }
 
-QModelIndex EquipmentTreeModel::index(int row, int column, const QModelIndex &parent) const
-{
+QModelIndex EquipmentTreeModel::index(int row, int column, const QModelIndex& parent) const {
     if (!hasIndex(row, column, parent)) {
         return QModelIndex();
     }
 
-    Equipment *parentItem = itemFromIndex(parent);
-    Equipment *childItem = parentItem->child(row);
+    Equipment* parentItem = itemFromIndex(parent);
+    Equipment* childItem = parentItem->child(row);
     if (!childItem) {
         return QModelIndex();
     }
@@ -137,14 +124,13 @@ QModelIndex EquipmentTreeModel::index(int row, int column, const QModelIndex &pa
     return createIndex(row, column, childItem);
 }
 
-QModelIndex EquipmentTreeModel::parent(const QModelIndex &index) const
-{
+QModelIndex EquipmentTreeModel::parent(const QModelIndex& index) const {
     if (!index.isValid()) {
         return QModelIndex();
     }
 
-    auto *childItem = static_cast<Equipment *>(index.internalPointer());
-    Equipment *parentItem = childItem ? childItem->parentItem() : nullptr;
+    auto* childItem = static_cast<Equipment*>(index.internalPointer());
+    Equipment* parentItem = childItem ? childItem->parentItem() : nullptr;
 
     if (!parentItem || parentItem == m_rootItem) {
         return QModelIndex();
@@ -153,25 +139,22 @@ QModelIndex EquipmentTreeModel::parent(const QModelIndex &index) const
     return createIndex(parentItem->row(), 0, parentItem);
 }
 
-int EquipmentTreeModel::rowCount(const QModelIndex &parent) const
-{
-    Equipment *parentItem = itemFromIndex(parent);
+int EquipmentTreeModel::rowCount(const QModelIndex& parent) const {
+    Equipment* parentItem = itemFromIndex(parent);
     return parentItem ? parentItem->childCount() : 0;
 }
 
-int EquipmentTreeModel::columnCount(const QModelIndex &parent) const
-{
+int EquipmentTreeModel::columnCount(const QModelIndex& parent) const {
     Q_UNUSED(parent);
     return 3;
 }
 
-QVariant EquipmentTreeModel::data(const QModelIndex &index, int role) const
-{
+QVariant EquipmentTreeModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || role != Qt::DisplayRole) {
         return QVariant();
     }
 
-    auto *item = static_cast<Equipment *>(index.internalPointer());
+    auto* item = static_cast<Equipment*>(index.internalPointer());
     if (!item) {
         return QVariant();
     }
@@ -185,8 +168,7 @@ QVariant EquipmentTreeModel::data(const QModelIndex &index, int role) const
     return item->data(index.column());
 }
 
-QVariant EquipmentTreeModel::headerData(int section, Qt::Orientation orientation, int role) const
-{
+QVariant EquipmentTreeModel::headerData(int section, Qt::Orientation orientation, int role) const {
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole) {
         return QVariant();
     }
@@ -203,45 +185,35 @@ QVariant EquipmentTreeModel::headerData(int section, Qt::Orientation orientation
     }
 }
 
-Qt::ItemFlags EquipmentTreeModel::flags(const QModelIndex &index) const
-{
+Qt::ItemFlags EquipmentTreeModel::flags(const QModelIndex& index) const {
     if (!index.isValid()) {
         return Qt::NoItemFlags;
     }
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-Equipment *EquipmentTreeModel::itemFromIndex(const QModelIndex &index) const
-{
+Equipment* EquipmentTreeModel::itemFromIndex(const QModelIndex& index) const {
     if (index.isValid()) {
-        return static_cast<Equipment *>(index.internalPointer());
+        return static_cast<Equipment*>(index.internalPointer());
     }
     return m_rootItem;
 }
 
-void EquipmentTreeModel::buildTree(const SubstationLayout::Layout &layout)
-{
-    Equipment *equipment;
-    for (const SubstationLayout::NodeSpec &node : layout.nodes) {
-        equipment = new Equipment(node.id,
-                                  node.type,
-                                  node.status,
-                                  node.location,
-                                  node.description,
-                                  node.parameters,
+void EquipmentTreeModel::buildTree(const SubstationLayout::Layout& layout) {
+    Equipment* equipment;
+    for (const SubstationLayout::NodeSpec& node : layout.nodes) {
+        equipment = new Equipment(node.id, node.type, node.status, node.location, node.description, node.parameters,
                                   m_rootItem);
         m_rootItem->appendChild(equipment);
     }
 }
 
-QModelIndex EquipmentTreeModel::indexForEquipmentRecursive(Equipment *current,
-                                                           Equipment *target,
-                                                           const QModelIndex &currentIndex) const
-{
+QModelIndex EquipmentTreeModel::indexForEquipmentRecursive(Equipment* current, Equipment* target,
+                                                           const QModelIndex& currentIndex) const {
     if (!current || !target) {
         return QModelIndex();
     }
-    Equipment *child;
+    Equipment* child;
     QModelIndex childIndex;
     QModelIndex nested;
     for (int row = 0; row < current->childCount(); ++row) {
@@ -260,9 +232,7 @@ QModelIndex EquipmentTreeModel::indexForEquipmentRecursive(Equipment *current,
     return QModelIndex();
 }
 
-Equipment *EquipmentTreeModel::equipmentByNameRecursive(Equipment *current,
-                                                        const QString &name) const
-{
+Equipment* EquipmentTreeModel::equipmentByNameRecursive(Equipment* current, const QString& name) const {
     if (!current) {
         return nullptr;
     }
@@ -270,7 +240,7 @@ Equipment *EquipmentTreeModel::equipmentByNameRecursive(Equipment *current,
     if (current->name() == name) {
         return current;
     }
-    Equipment *child;
+    Equipment* child;
     for (int row = 0; row < current->childCount(); ++row) {
         child = equipmentByNameRecursive(current->child(row), name);
         if (child) {

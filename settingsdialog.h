@@ -10,26 +10,25 @@ namespace Ui {
 class SettingsDialog;
 }
 
-class SettingsDialog : public QDialog
-{
+class SettingsDialog : public QDialog {
     Q_OBJECT
 
-public:
-    explicit SettingsDialog(QWidget *parent = nullptr);
+  public:
+    explicit SettingsDialog(QWidget* parent = nullptr);
     ~SettingsDialog();
 
-public slots:
+  public slots:
     void accept() override;
 
-protected:
-    void changeEvent(QEvent *event) override;
+  protected:
+    void changeEvent(QEvent* event) override;
 
-private:
+  private:
     void loadSettings();
     AppSettings::ThemeMode selectedTheme() const;
     QString selectedLanguage() const;
 
-    Ui::SettingsDialog *ui;
+    Ui::SettingsDialog* ui;
     AppSettings::Settings m_settings;
 };
 

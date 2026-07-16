@@ -17,11 +17,8 @@
 #include <QResizeEvent>
 #include <QShowEvent>
 
-SubstationDiagramView::SubstationDiagramView(QWidget *parent)
-    : QGraphicsView(parent)
-    , m_scene(new QGraphicsScene(this))
-    , m_fitPending(true)
-{
+SubstationDiagramView::SubstationDiagramView(QWidget* parent)
+    : QGraphicsView(parent), m_scene(new QGraphicsScene(this)), m_fitPending(true) {
     setScene(m_scene);
     setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
     setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
@@ -34,31 +31,27 @@ SubstationDiagramView::SubstationDiagramView(QWidget *parent)
     setDragMode(QGraphicsView::ScrollHandDrag);
 }
 
-void SubstationDiagramView::setLayout(const SubstationLayout::Layout &layout)
-{
+void SubstationDiagramView::setLayout(const SubstationLayout::Layout& layout) {
     m_layout = layout;
     buildDiagram();
     fitToContent();
 }
 
-const SubstationLayout::Layout &SubstationDiagramView::substationLayout() const
-{
+const SubstationLayout::Layout& SubstationDiagramView::substationLayout() const {
     return m_layout;
 }
 
-SubstationLayout::Layout SubstationDiagramView::layoutWithCurrentPositions() const
-{
+SubstationLayout::Layout SubstationDiagramView::layoutWithCurrentPositions() const {
     SubstationLayout::Layout layout = m_layout;
-    for (SubstationLayout::NodeSpec &node : layout.nodes) {
-        if (const DiagramNodeItem *item = m_nodes.value(node.id, nullptr)) {
+    for (SubstationLayout::NodeSpec& node : layout.nodes) {
+        if (const DiagramNodeItem* item = m_nodes.value(node.id, nullptr)) {
             node.position = item->pos();
         }
     }
     return layout;
 }
 
-void SubstationDiagramView::fitToContent()
-{
+void SubstationDiagramView::fitToContent() {
     logInfo("SubstationDiagramView", tr("Fitting diagram to content"));
     if (!m_scene || viewport()->size().isEmpty()) {
         m_fitPending = true;
@@ -77,14 +70,13 @@ void SubstationDiagramView::fitToContent()
     m_fitPending = false;
 }
 
-void SubstationDiagramView::selectEquipment(const QString &equipmentKey)
-{
+void SubstationDiagramView::selectEquipment(const QString& equipmentKey) {
     for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it) {
         it.value()->setSelectedAppearance(it.key() == equipmentKey);
     }
 
     bool selected;
-    for (const ConnectionRecord &connection : std::as_const(m_connections)) {
+    for (const ConnectionRecord& connection : std::as_const(m_connections)) {
         selected = connection.sourceKey == equipmentKey || connection.targetKey == equipmentKey;
         if (connection.item) {
             connection.item->setSelectedAppearance(selected);
@@ -92,14 +84,13 @@ void SubstationDiagramView::selectEquipment(const QString &equipmentKey)
     }
 }
 
-void SubstationDiagramView::refreshTheme()
-{
+void SubstationDiagramView::refreshTheme() {
     if (!m_scene) {
         return;
     }
 
     m_scene->setBackgroundBrush(QBrush(DiagramTheme::color(DiagramTheme::ColorRole::Background)));
-    for (const ConnectionRecord &connection : std::as_const(m_connections)) {
+    for (const ConnectionRecord& connection : std::as_const(m_connections)) {
         if (connection.item) {
             connection.item->refreshTheme();
         }
@@ -111,40 +102,28 @@ void SubstationDiagramView::refreshTheme()
     update();
 }
 
-DiagramNodeItem *SubstationDiagramView::addNode(const SubstationLayout::NodeSpec &nodeSpec)
-{
-    auto *node = new DiagramNodeItem(nodeSpec.id, nodeSpec.shape, nodeSpec.title, nodeSpec.size);
+DiagramNodeItem* SubstationDiagramView::addNode(const SubstationLayout::NodeSpec& nodeSpec) {
+    auto* node = new DiagramNodeItem(nodeSpec.id, nodeSpec.shape, nodeSpec.title, nodeSpec.size);
     node->setPos(nodeSpec.position);
     m_scene->addItem(node);
     connect(node, &DiagramNodeItem::activated, this, &SubstationDiagramView::equipmentActivated);
-    connect(node,
-            &DiagramNodeItem::positionChanged,
-            this,
-            &SubstationDiagramView::updateNodePosition);
+    connect(node, &DiagramNodeItem::positionChanged, this, &SubstationDiagramView::updateNodePosition);
     m_nodes.insert(nodeSpec.id, node);
     return node;
 }
 
-void SubstationDiagramView::addConnection(const SubstationLayout::ConnectionSpec &connectionSpec,
-                                          DiagramNodeItem *sourceNode,
-                                          DiagramNodeItem *targetNode)
-{
+void SubstationDiagramView::addConnection(const SubstationLayout::ConnectionSpec& connectionSpec,
+                                          DiagramNodeItem* sourceNode, DiagramNodeItem* targetNode) {
     Q_UNUSED(connectionSpec.colorRole)
     Q_UNUSED(connectionSpec.width)
     const QColor resolvedColor = DiagramTheme::color(DiagramTheme::ColorRole::Branch);
     const QLineF line(anchorPoint(sourceNode, targetNode), anchorPoint(targetNode, sourceNode));
-    auto *link = new DiagramLinkItem(connectionSpec.fromId,
-                                     connectionSpec.toId,
-                                     line,
-                                     resolvedColor,
-                                     2.0);
+    auto* link = new DiagramLinkItem(connectionSpec.fromId, connectionSpec.toId, line, resolvedColor, 2.0);
     m_scene->addItem(link);
-    m_connections.append(
-        ConnectionRecord{connectionSpec.fromId, connectionSpec.toId, sourceNode, targetNode, link});
+    m_connections.append(ConnectionRecord{connectionSpec.fromId, connectionSpec.toId, sourceNode, targetNode, link});
 }
 
-void SubstationDiagramView::drawBackground(QPainter *painter, const QRectF &rect)
-{
+void SubstationDiagramView::drawBackground(QPainter* painter, const QRectF& rect) {
     QGraphicsView::drawBackground(painter, rect);
 
     painter->save();
@@ -164,29 +143,26 @@ void SubstationDiagramView::drawBackground(QPainter *painter, const QRectF &rect
     painter->restore();
 }
 
-void SubstationDiagramView::resizeEvent(QResizeEvent *event)
-{
+void SubstationDiagramView::resizeEvent(QResizeEvent* event) {
     logInfo("SubstationDiagramView", tr("Resize event triggered"));
     QGraphicsView::resizeEvent(event);
     fitToContent();
 }
 
-void SubstationDiagramView::buildDiagram()
-{
+void SubstationDiagramView::buildDiagram() {
     m_scene->clear();
     m_nodes.clear();
     m_connections.clear();
 
     m_scene->setBackgroundBrush(QBrush(DiagramTheme::color(DiagramTheme::ColorRole::Background)));
 
-    for (const SubstationLayout::NodeSpec &nodeSpec : std::as_const(m_layout.nodes)) {
+    for (const SubstationLayout::NodeSpec& nodeSpec : std::as_const(m_layout.nodes)) {
         addNode(nodeSpec);
     }
 
-    DiagramNodeItem *sourceNode;
-    DiagramNodeItem *targetNode;
-    for (const SubstationLayout::ConnectionSpec &connectionSpec :
-         std::as_const(m_layout.connections)) {
+    DiagramNodeItem* sourceNode;
+    DiagramNodeItem* targetNode;
+    for (const SubstationLayout::ConnectionSpec& connectionSpec : std::as_const(m_layout.connections)) {
         targetNode = m_nodes.value(connectionSpec.toId, nullptr);
         sourceNode = m_nodes.value(connectionSpec.fromId, nullptr);
         if (!sourceNode || !targetNode) {
@@ -206,9 +182,7 @@ void SubstationDiagramView::buildDiagram()
     m_fitPending = true;
 }
 
-QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem *node,
-                                           const DiagramNodeItem *other) const
-{
+QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem* node, const DiagramNodeItem* other) const {
     if (!node || !other) {
         return QPointF();
     }
@@ -224,25 +198,21 @@ QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem *node,
 
     const qreal halfWidth = qMax<qreal>(1.0, rect.width() / 2.0);
     const qreal halfHeight = qMax<qreal>(1.0, rect.height() / 2.0);
-    const qreal scale = 1.0
-                        / qMax(qAbs(direction.x()) / halfWidth, qAbs(direction.y()) / halfHeight);
+    const qreal scale = 1.0 / qMax(qAbs(direction.x()) / halfWidth, qAbs(direction.y()) / halfHeight);
     return center + direction * scale;
 }
 
-void SubstationDiagramView::updateConnectionLines()
-{
-    for (const ConnectionRecord &connection : std::as_const(m_connections)) {
+void SubstationDiagramView::updateConnectionLines() {
+    for (const ConnectionRecord& connection : std::as_const(m_connections)) {
         if (connection.item && connection.sourceNode && connection.targetNode) {
-            connection.item->setLine(
-                QLineF(anchorPoint(connection.sourceNode, connection.targetNode),
-                       anchorPoint(connection.targetNode, connection.sourceNode)));
+            connection.item->setLine(QLineF(anchorPoint(connection.sourceNode, connection.targetNode),
+                                            anchorPoint(connection.targetNode, connection.sourceNode)));
         }
     }
 }
 
-void SubstationDiagramView::updateNodePosition(const QString &equipmentKey, const QPointF &position)
-{
-    for (SubstationLayout::NodeSpec &node : m_layout.nodes) {
+void SubstationDiagramView::updateNodePosition(const QString& equipmentKey, const QPointF& position) {
+    for (SubstationLayout::NodeSpec& node : m_layout.nodes) {
         if (node.id == equipmentKey) {
             node.position = position;
             break;

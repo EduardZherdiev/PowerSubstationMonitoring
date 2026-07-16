@@ -10,20 +10,19 @@ namespace AppSettings {
 
 enum class ThemeMode { System, Dark, Light };
 
-struct Settings
-{
+struct Settings {
     ThemeMode theme = ThemeMode::System;
     QString language = QStringLiteral("en");
 };
 
 QString settingsFilePath();
 Settings load();
-void save(const Settings &settings);
-void applyTheme(QApplication &application, ThemeMode theme);
-bool applyLanguage(QApplication &application, const QString &language, QTranslator &translator);
+void save(const Settings& settings);
+void applyTheme(QApplication& application, ThemeMode theme);
+bool applyLanguage(QApplication& application, const QString& language, QTranslator& translator);
 
 QString themeToString(ThemeMode theme);
-ThemeMode themeFromString(const QString &themeName);
+ThemeMode themeFromString(const QString& themeName);
 
 } // namespace AppSettings
 

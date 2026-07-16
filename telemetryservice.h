@@ -9,15 +9,14 @@
 
 class QTimer;
 
-class TelemetryService : public QObject
-{
+class TelemetryService : public QObject {
     Q_OBJECT
 
-public:
+  public:
     enum class ConnectionState { Disconnected, Connecting, Connected };
     Q_ENUM(ConnectionState)
 
-    explicit TelemetryService(std::unique_ptr<ITelemetrySource> source, QObject *parent = nullptr);
+    explicit TelemetryService(std::unique_ptr<ITelemetrySource> source, QObject* parent = nullptr);
 
     void start(int intervalMs = 1000);
     void stop();
@@ -29,17 +28,17 @@ public:
     bool manualTemperatureActive() const;
     double displayedTemperature() const;
 
-signals:
-    void snapshotReady(const SensorSnapshot &snapshot);
+  signals:
+    void snapshotReady(const SensorSnapshot& snapshot);
     void connectionStateChanged(TelemetryService::ConnectionState state);
 
-private:
+  private:
     void setConnectionState(ConnectionState state);
     void poll();
-    SensorSnapshot applyControls(const SensorSnapshot &snapshot);
+    SensorSnapshot applyControls(const SensorSnapshot& snapshot);
 
     std::unique_ptr<ITelemetrySource> m_source;
-    QTimer *m_timer;
+    QTimer* m_timer;
     ConnectionState m_connectionState;
     SensorSnapshot m_lastSnapshot;
     bool m_hasLastSnapshot;

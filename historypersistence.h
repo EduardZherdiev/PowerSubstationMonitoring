@@ -7,10 +7,10 @@
 namespace HistoryPersistence {
 
 QVector<EventRecord> loadEvents();
-bool appendEvent(const EventRecord &record);
+bool appendEvent(const EventRecord& record);
 
 QVector<TelemetrySample> loadTelemetry(TelemetryHistory::SeriesKind kind);
-bool appendTelemetry(TelemetryHistory::SeriesKind kind, const TelemetrySample &sample);
+bool appendTelemetry(TelemetryHistory::SeriesKind kind, const TelemetrySample& sample);
 
 QString storageDirectoryPath();
 

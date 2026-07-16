@@ -9,31 +9,21 @@
 #include <QPointF>
 #include <QVariant>
 
-DiagramNodeItem::DiagramNodeItem(const QString &equipmentKey,
-                                 ShapeType shapeType,
-                                 const QString &title,
-                                 const QSizeF &size,
-                                 QGraphicsItem *parent)
-    : QGraphicsObject(parent)
-    , m_equipmentKey(equipmentKey)
-    , m_shapeType(shapeType)
-    , m_title(title)
-    , m_size(size)
-    , m_selected(false)
-{
+DiagramNodeItem::DiagramNodeItem(const QString& equipmentKey, ShapeType shapeType, const QString& title,
+                                 const QSizeF& size, QGraphicsItem* parent)
+    : QGraphicsObject(parent), m_equipmentKey(equipmentKey), m_shapeType(shapeType), m_title(title), m_size(size),
+      m_selected(false) {
     setAcceptedMouseButtons(Qt::LeftButton);
     setFlag(QGraphicsItem::ItemIsSelectable, true);
     setFlag(QGraphicsItem::ItemIsMovable, true);
     setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
 }
 
-QRectF DiagramNodeItem::boundingRect() const
-{
+QRectF DiagramNodeItem::boundingRect() const {
     return QRectF(QPointF(0, 0), m_size);
 }
 
-void DiagramNodeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
-{
+void DiagramNodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*) {
     const QColor borderColor = m_selected ? DiagramTheme::color(DiagramTheme::ColorRole::Selection)
                                           : DiagramTheme::color(DiagramTheme::ColorRole::Border);
     const QColor fillColor = DiagramTheme::color(DiagramTheme::ColorRole::NodeFill);
@@ -48,8 +38,7 @@ void DiagramNodeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *,
     switch (m_shapeType) {
     case ShapeType::Busbar:
         painter->setPen(QPen(busColor, 10.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-        painter->drawLine(QPointF(rect.left() + 8, rect.center().y()),
-                          QPointF(rect.right() - 8, rect.center().y()));
+        painter->drawLine(QPointF(rect.left() + 8, rect.center().y()), QPointF(rect.right() - 8, rect.center().y()));
         break;
     case ShapeType::Breaker:
         painter->setBrush(fillColor);
@@ -64,13 +53,9 @@ void DiagramNodeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *,
         break;
     }
     case ShapeType::LineTerminal:
-        painter->setPen(QPen(DiagramTheme::color(DiagramTheme::ColorRole::Branch),
-                             2.0,
-                             Qt::SolidLine,
-                             Qt::RoundCap,
+        painter->setPen(QPen(DiagramTheme::color(DiagramTheme::ColorRole::Branch), 2.0, Qt::SolidLine, Qt::RoundCap,
                              Qt::RoundJoin));
-        painter->drawLine(QPointF(rect.left() + 10, rect.center().y()),
-                          QPointF(rect.right() - 10, rect.center().y()));
+        painter->drawLine(QPointF(rect.left() + 10, rect.center().y()), QPointF(rect.right() - 10, rect.center().y()));
         {
             const QPointF leftTip(rect.left() + 18, rect.center().y());
             const QPointF rightTip(rect.right() - 18, rect.center().y());
@@ -91,20 +76,17 @@ void DiagramNodeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *,
     painter->drawText(rect, Qt::AlignHCenter | Qt::AlignBottom, m_title);
 
     if (m_selected) {
-        painter->setPen(
-            QPen(DiagramTheme::color(DiagramTheme::ColorRole::Selection), 2.5, Qt::SolidLine));
+        painter->setPen(QPen(DiagramTheme::color(DiagramTheme::ColorRole::Selection), 2.5, Qt::SolidLine));
         painter->setBrush(Qt::NoBrush);
         painter->drawRect(rect.adjusted(1, 1, -1, -1));
     }
 }
 
-QString DiagramNodeItem::equipmentKey() const
-{
+QString DiagramNodeItem::equipmentKey() const {
     return m_equipmentKey;
 }
 
-void DiagramNodeItem::setSelectedAppearance(bool selected)
-{
+void DiagramNodeItem::setSelectedAppearance(bool selected) {
     if (m_selected == selected) {
         return;
     }
@@ -112,19 +94,16 @@ void DiagramNodeItem::setSelectedAppearance(bool selected)
     update();
 }
 
-bool DiagramNodeItem::isSelectedAppearance() const
-{
+bool DiagramNodeItem::isSelectedAppearance() const {
     return m_selected;
 }
 
-void DiagramNodeItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
-{
+void DiagramNodeItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     emit activated(m_equipmentKey);
     QGraphicsObject::mousePressEvent(event);
 }
 
-QVariant DiagramNodeItem::itemChange(GraphicsItemChange change, const QVariant &value)
-{
+QVariant DiagramNodeItem::itemChange(GraphicsItemChange change, const QVariant& value) {
     if (change == QGraphicsItem::ItemPositionHasChanged) {
         emit positionChanged(m_equipmentKey, value.toPointF());
     }

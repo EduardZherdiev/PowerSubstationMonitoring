@@ -12,8 +12,7 @@
 
 namespace SubstationLayout {
 
-struct NodeSpec
-{
+struct NodeSpec {
     QString id;
     QString title;
     DiagramNodeItem::ShapeType shape = DiagramNodeItem::ShapeType::LineTerminal;
@@ -26,25 +25,23 @@ struct NodeSpec
     QSizeF size;
 };
 
-struct ConnectionSpec
-{
+struct ConnectionSpec {
     QString fromId;
     QString toId;
     DiagramTheme::ColorRole colorRole = DiagramTheme::ColorRole::Branch;
     qreal width = 2.0;
 };
 
-struct Layout
-{
+struct Layout {
     QVector<NodeSpec> nodes;
     QVector<ConnectionSpec> connections;
 };
 
 QString defaultLayoutPath();
-bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage = nullptr);
-bool saveToFile(const QString &path, const Layout &layout, QString *errorMessage = nullptr);
-DiagramNodeItem::ShapeType shapeTypeFromString(const QString &shapeName);
-DiagramTheme::ColorRole colorRoleFromString(const QString &roleName);
+bool loadFromFile(const QString& path, Layout* layout, QString* errorMessage = nullptr);
+bool saveToFile(const QString& path, const Layout& layout, QString* errorMessage = nullptr);
+DiagramNodeItem::ShapeType shapeTypeFromString(const QString& shapeName);
+DiagramTheme::ColorRole colorRoleFromString(const QString& roleName);
 
 } // namespace SubstationLayout
 

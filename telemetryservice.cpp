@@ -5,14 +5,12 @@
 
 namespace {
 
-double cooledTemperature(double previousTemperature)
-{
+double cooledTemperature(double previousTemperature) {
     constexpr double ambientTemperature = 34.0;
     return qMax(ambientTemperature, previousTemperature - 1.8);
 }
 
-double smoothApproach(double currentValue, double targetValue, double maximumStep)
-{
+double smoothApproach(double currentValue, double targetValue, double maximumStep) {
     if (qAbs(targetValue - currentValue) <= maximumStep) {
         return targetValue;
     }
@@ -21,22 +19,14 @@ double smoothApproach(double currentValue, double targetValue, double maximumSte
 
 } // namespace
 
-TelemetryService::TelemetryService(std::unique_ptr<ITelemetrySource> source, QObject *parent)
-    : QObject(parent)
-    , m_source(std::move(source))
-    , m_timer(new QTimer(this))
-    , m_connectionState(ConnectionState::Disconnected)
-    , m_hasLastSnapshot(false)
-    , m_breakerClosed(true)
-    , m_manualTemperatureActive(false)
-    , m_manualTemperature(68.0)
-    , m_temperatureRecoveryPhase(0.0)
-{
+TelemetryService::TelemetryService(std::unique_ptr<ITelemetrySource> source, QObject* parent)
+    : QObject(parent), m_source(std::move(source)), m_timer(new QTimer(this)),
+      m_connectionState(ConnectionState::Disconnected), m_hasLastSnapshot(false), m_breakerClosed(true),
+      m_manualTemperatureActive(false), m_manualTemperature(68.0), m_temperatureRecoveryPhase(0.0) {
     connect(m_timer, &QTimer::timeout, this, &TelemetryService::poll);
 }
 
-void TelemetryService::start(int intervalMs)
-{
+void TelemetryService::start(int intervalMs) {
     if (!m_source) {
         setConnectionState(ConnectionState::Disconnected);
         return;
@@ -47,14 +37,12 @@ void TelemetryService::start(int intervalMs)
     poll();
 }
 
-void TelemetryService::stop()
-{
+void TelemetryService::stop() {
     m_timer->stop();
     setConnectionState(ConnectionState::Disconnected);
 }
 
-void TelemetryService::setBreakerClosed(bool closed)
-{
+void TelemetryService::setBreakerClosed(bool closed) {
     if (m_breakerClosed == closed) {
         return;
     }
@@ -62,36 +50,30 @@ void TelemetryService::setBreakerClosed(bool closed)
     poll();
 }
 
-void TelemetryService::setManualTemperature(double temperatureC)
-{
+void TelemetryService::setManualTemperature(double temperatureC) {
     m_manualTemperature = temperatureC;
     m_manualTemperatureActive = true;
     m_temperatureRecoveryPhase = 0.0;
     poll();
 }
 
-TelemetryService::ConnectionState TelemetryService::connectionState() const
-{
+TelemetryService::ConnectionState TelemetryService::connectionState() const {
     return m_connectionState;
 }
 
-bool TelemetryService::breakerClosed() const
-{
+bool TelemetryService::breakerClosed() const {
     return m_breakerClosed;
 }
 
-bool TelemetryService::manualTemperatureActive() const
-{
+bool TelemetryService::manualTemperatureActive() const {
     return m_manualTemperatureActive;
 }
 
-double TelemetryService::displayedTemperature() const
-{
+double TelemetryService::displayedTemperature() const {
     return m_manualTemperatureActive ? m_manualTemperature : m_lastSnapshot.transformerTemperatureC;
 }
 
-void TelemetryService::setConnectionState(ConnectionState state)
-{
+void TelemetryService::setConnectionState(ConnectionState state) {
     if (m_connectionState == state) {
         return;
     }
@@ -99,8 +81,7 @@ void TelemetryService::setConnectionState(ConnectionState state)
     emit connectionStateChanged(state);
 }
 
-void TelemetryService::poll()
-{
+void TelemetryService::poll() {
     if (!m_source) {
         setConnectionState(ConnectionState::Disconnected);
         return;
@@ -119,20 +100,17 @@ void TelemetryService::poll()
     emit snapshotReady(snapshot);
 }
 
-SensorSnapshot TelemetryService::applyControls(const SensorSnapshot &sourceSnapshot)
-{
+SensorSnapshot TelemetryService::applyControls(const SensorSnapshot& sourceSnapshot) {
     SensorSnapshot snapshot = sourceSnapshot;
     snapshot.breakerClosed = m_breakerClosed;
 
     if (!snapshot.breakerClosed) {
         snapshot.sourceCurrentA = 0.0;
         snapshot.transformerLoadPercent = 0.0;
-        const double referenceTemperature = m_hasLastSnapshot
-                                                ? m_lastSnapshot.transformerTemperatureC
-                                                : snapshot.transformerTemperatureC;
+        const double referenceTemperature =
+            m_hasLastSnapshot ? m_lastSnapshot.transformerTemperatureC : snapshot.transformerTemperatureC;
         snapshot.transformerTemperatureC = cooledTemperature(referenceTemperature);
-        snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"),
-                                            snapshot.transformerTemperatureC);
+        snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), snapshot.transformerTemperatureC);
     }
 
     if (m_manualTemperatureActive) {
@@ -140,12 +118,10 @@ SensorSnapshot TelemetryService::applyControls(const SensorSnapshot &sourceSnaps
         m_temperatureRecoveryPhase += 0.55;
         const double distanceToTarget = qAbs(m_manualTemperature - targetTemperature);
         const double wobbleAmplitude = qMin(0.45, distanceToTarget * 0.18);
-        const double wobbleTarget = targetTemperature
-                                    + qSin(m_temperatureRecoveryPhase) * wobbleAmplitude;
+        const double wobbleTarget = targetTemperature + qSin(m_temperatureRecoveryPhase) * wobbleAmplitude;
         m_manualTemperature = smoothApproach(m_manualTemperature, wobbleTarget, 0.8);
         snapshot.transformerTemperatureC = m_manualTemperature;
-        snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"),
-                                            snapshot.transformerTemperatureC);
+        snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), snapshot.transformerTemperatureC);
 
         if (qAbs(m_manualTemperature - targetTemperature) < 0.15) {
             m_manualTemperature = targetTemperature;
