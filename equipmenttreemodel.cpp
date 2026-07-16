@@ -57,8 +57,7 @@ QString translatedStatus(const QString &status)
 EquipmentTreeModel::EquipmentTreeModel(QObject *parent)
     : QAbstractItemModel(parent)
     , m_rootItem(new Equipment("Root"))
-{
-}
+{}
 
 void EquipmentTreeModel::setLayout(const SubstationLayout::Layout &layout)
 {
@@ -86,7 +85,8 @@ void EquipmentTreeModel::updateLayout(const SubstationLayout::Layout &layout)
         equipment->update(node.type, node.status, node.location, node.description, node.parameters);
         const QModelIndex firstColumn = indexForEquipment(equipment);
         if (firstColumn.isValid()) {
-            emit dataChanged(firstColumn, index(firstColumn.row(), columnCount() - 1, firstColumn.parent()),
+            emit dataChanged(firstColumn,
+                             index(firstColumn.row(), columnCount() - 1, firstColumn.parent()),
                              {Qt::DisplayRole});
         }
     }
@@ -224,17 +224,19 @@ void EquipmentTreeModel::buildTree(const SubstationLayout::Layout &layout)
     Equipment *equipment;
     for (const SubstationLayout::NodeSpec &node : layout.nodes) {
         equipment = new Equipment(node.id,
-                                node.type,
-                                node.status,
-                                node.location,
-                                node.description,
-                                node.parameters,
-                                m_rootItem);
+                                  node.type,
+                                  node.status,
+                                  node.location,
+                                  node.description,
+                                  node.parameters,
+                                  m_rootItem);
         m_rootItem->appendChild(equipment);
     }
 }
 
-QModelIndex EquipmentTreeModel::indexForEquipmentRecursive(Equipment *current, Equipment *target, const QModelIndex &currentIndex) const
+QModelIndex EquipmentTreeModel::indexForEquipmentRecursive(Equipment *current,
+                                                           Equipment *target,
+                                                           const QModelIndex &currentIndex) const
 {
     if (!current || !target) {
         return QModelIndex();
@@ -258,7 +260,8 @@ QModelIndex EquipmentTreeModel::indexForEquipmentRecursive(Equipment *current, E
     return QModelIndex();
 }
 
-Equipment *EquipmentTreeModel::equipmentByNameRecursive(Equipment *current, const QString &name) const
+Equipment *EquipmentTreeModel::equipmentByNameRecursive(Equipment *current,
+                                                        const QString &name) const
 {
     if (!current) {
         return nullptr;

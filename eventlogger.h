@@ -1,16 +1,12 @@
 #ifndef EVENTLOGGER_H
 #define EVENTLOGGER_H
 
+#include <QDateTime>
 #include <QObject>
 #include <QString>
-#include <QDateTime>
 #include <QVector>
 
-enum class EventLevel {
-    Info,
-    Warning,
-    Critical
-};
+enum class EventLevel { Info, Warning, Critical };
 
 struct EventRecord
 {
@@ -29,7 +25,9 @@ public:
     void info(const QString &source, const QString &message);
     void warning(const QString &source, const QString &message);
     void critical(const QString &source, const QString &message);
-    QVector<EventRecord> records(const QDateTime &from, const QDateTime &to, bool warningsAndCriticalOnly = true) const;
+    QVector<EventRecord> records(const QDateTime &from,
+                                 const QDateTime &to,
+                                 bool warningsAndCriticalOnly = true) const;
 
 signals:
     void eventLogged(const EventLevel &level, const QString &source, const QString &message);

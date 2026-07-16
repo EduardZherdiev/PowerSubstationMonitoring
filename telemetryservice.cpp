@@ -128,10 +128,11 @@ SensorSnapshot TelemetryService::applyControls(const SensorSnapshot &sourceSnaps
         snapshot.sourceCurrentA = 0.0;
         snapshot.transformerLoadPercent = 0.0;
         const double referenceTemperature = m_hasLastSnapshot
-            ? m_lastSnapshot.transformerTemperatureC
-            : snapshot.transformerTemperatureC;
+                                                ? m_lastSnapshot.transformerTemperatureC
+                                                : snapshot.transformerTemperatureC;
         snapshot.transformerTemperatureC = cooledTemperature(referenceTemperature);
-        snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), snapshot.transformerTemperatureC);
+        snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"),
+                                            snapshot.transformerTemperatureC);
     }
 
     if (m_manualTemperatureActive) {
@@ -139,10 +140,12 @@ SensorSnapshot TelemetryService::applyControls(const SensorSnapshot &sourceSnaps
         m_temperatureRecoveryPhase += 0.55;
         const double distanceToTarget = qAbs(m_manualTemperature - targetTemperature);
         const double wobbleAmplitude = qMin(0.45, distanceToTarget * 0.18);
-        const double wobbleTarget = targetTemperature + qSin(m_temperatureRecoveryPhase) * wobbleAmplitude;
+        const double wobbleTarget = targetTemperature
+                                    + qSin(m_temperatureRecoveryPhase) * wobbleAmplitude;
         m_manualTemperature = smoothApproach(m_manualTemperature, wobbleTarget, 0.8);
         snapshot.transformerTemperatureC = m_manualTemperature;
-        snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"), snapshot.transformerTemperatureC);
+        snapshot.temperatureBySensor.insert(QStringLiteral("TS-TR-1"),
+                                            snapshot.transformerTemperatureC);
 
         if (qAbs(m_manualTemperature - targetTemperature) < 0.15) {
             m_manualTemperature = targetTemperature;

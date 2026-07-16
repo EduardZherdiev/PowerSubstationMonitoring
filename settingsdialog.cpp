@@ -81,7 +81,8 @@ void SettingsDialog::accept()
     AppSettings::save(m_settings);
     AppSettings::applyTheme(*qApp, m_settings.theme);
 
-    if (auto *translator = qApp->findChild<QTranslator *>(QStringLiteral("applicationTranslator"))) {
+    if (auto *translator = qApp->findChild<QTranslator *>(
+            QStringLiteral("applicationTranslator"))) {
         AppSettings::applyLanguage(*qApp, m_settings.language, *translator);
     }
 

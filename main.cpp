@@ -1,6 +1,6 @@
-#include "mainwindow.h"
-#include "eventlogger.h"
 #include "appsettings.h"
+#include "eventlogger.h"
+#include "mainwindow.h"
 
 #include <QApplication>
 #include <QTranslator>

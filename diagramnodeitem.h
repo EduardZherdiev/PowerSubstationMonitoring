@@ -19,13 +19,7 @@ class DiagramNodeItem : public QGraphicsObject
     Q_OBJECT
 
 public:
-    enum class ShapeType {
-        Busbar,
-        Breaker,
-        Transformer,
-        LineTerminal,
-        Station
-    };
+    enum class ShapeType { Busbar, Breaker, Transformer, LineTerminal, Station };
 
     DiagramNodeItem(const QString &equipmentKey,
                     ShapeType shapeType,
@@ -34,7 +28,9 @@ public:
                     QGraphicsItem *parent = nullptr);
 
     QRectF boundingRect() const override;
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
+    void paint(QPainter *painter,
+               const QStyleOptionGraphicsItem *option,
+               QWidget *widget = nullptr) override;
 
     QString equipmentKey() const;
     void setSelectedAppearance(bool selected);

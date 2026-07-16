@@ -112,4 +112,4 @@ QColor color(ColorRole role)
 {
     return themedColor(role);
 }
-}
+} // namespace DiagramTheme

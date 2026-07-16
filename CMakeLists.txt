@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 project(PowerSubstationMonitoring LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Svg PrintSupport)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets LinguistTools Svg PrintSupport)
 
 qt_standard_project_setup()
 
@@ -50,7 +50,6 @@ configure_file(data/substation_layout_compact.json ${CMAKE_CURRENT_BINARY_DIR}/s
 qt_add_executable(PowerSubstationMonitoring
     WIN32 MACOSX_BUNDLE
     main.cpp
-    resources/appIcon.rc
     appsettings.cpp
     mainwindow.cpp
     mainwindow.h
@@ -74,6 +73,18 @@ qt_add_executable(PowerSubstationMonitoring
     reportdialog.h reportdialog.cpp reportdialog.ui
     settingsdialog.h settingsdialog.cpp settingsdialog.ui
     resources.qrc
+
+)
+
+if(WIN32)
+    target_sources(PowerSubstationMonitoring PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/appIcon.rc"
+    )
+endif()
+
+qt_add_translations(PowerSubstationMonitoring
+    TS_FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/ts/app_uk.ts"
 )
 
 target_include_directories(PowerSubstationMonitoring PRIVATE
@@ -103,3 +114,10 @@ qt_generate_deploy_app_script(
     NO_UNSUPPORTED_PLATFORM_ERROR
 )
 install(SCRIPT ${deploy_script})
+
+# qt.qpa.wayland.textinput: virtual void QtWaylandClient::QWaylandTextInputv3::zwp_text_input_v3_leave(wl_surface*) Got leave event for surface 0x0 with focusing surface 0x61eb5befbd60
+# qt.qpa.wayland.textinput: virtual void QtWaylandClient::QWaylandTextInputv3::zwp_text_input_v3_leave(wl_surface*) Got leave event for surface 0x0 with focusing surface 0x61eb5bc7bf90
+# qt.qpa.wayland.textinput: virtual void QtWaylandClient::QWaylandTextInputv3::zwp_text_input_v3_leave(wl_surface*) Got leave event for surface 0x0 with focusing surface 0x61eb5b2ed190
+# qt.qpa.wayland.textinput: virtual void QtWaylandClient::QWaylandTextInputv3::zwp_text_input_v3_leave(wl_surface*) Got leave event for surface 0x0 with focusing surface 0x61eb5bec75c0
+# qt.qpa.wayland.textinput: virtual void QtWaylandClient::QWaylandTextInputv3::zwp_text_input_v3_leave(wl_surface*) Got leave event for surface 0x0 with focusing surface 0x61eb5bc58a60
+# qt.qpa.wayland.textinput: virtual void QtWaylandClient::QWaylandTextInputv3::zwp_text_input_v3_leave(wl_surface*) Got leave event for surface 0x0 with focusing surface 0x61eb5b9cf8d0

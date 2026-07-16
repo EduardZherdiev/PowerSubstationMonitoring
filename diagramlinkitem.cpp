@@ -39,7 +39,9 @@ QString DiagramLinkItem::targetKey() const
     return m_targetKey;
 }
 
-void DiagramLinkItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+void DiagramLinkItem::paint(QPainter *painter,
+                            const QStyleOptionGraphicsItem *option,
+                            QWidget *widget)
 {
     Q_UNUSED(option)
     Q_UNUSED(widget)
@@ -89,7 +91,11 @@ void DiagramLinkItem::setSelectedAppearance(bool selected)
 {
     m_selected = selected;
     if (selected) {
-        setPen(QPen(DiagramTheme::color(DiagramTheme::ColorRole::Selection), m_normalWidth + 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        setPen(QPen(DiagramTheme::color(DiagramTheme::ColorRole::Selection),
+                    m_normalWidth + 1.5,
+                    Qt::SolidLine,
+                    Qt::RoundCap,
+                    Qt::RoundJoin));
     } else {
         setPen(QPen(m_normalColor, m_normalWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     }

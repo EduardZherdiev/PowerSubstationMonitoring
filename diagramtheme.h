@@ -22,6 +22,6 @@ enum class ColorRole {
 
 void setTheme(AppSettings::ThemeMode theme);
 QColor color(ColorRole role);
-}
+} // namespace DiagramTheme
 
 #endif // DIAGRAMTHEME_H

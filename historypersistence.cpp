@@ -78,7 +78,8 @@ void rewriteObjects(const QString &filePath, const QVector<QJsonObject> &objects
 
 QDateTime timestampFromObject(const QJsonObject &object)
 {
-    return QDateTime::fromString(object.value(QStringLiteral("timestamp")).toString(), Qt::ISODateWithMs);
+    return QDateTime::fromString(object.value(QStringLiteral("timestamp")).toString(),
+                                 Qt::ISODateWithMs);
 }
 
 } // namespace
@@ -124,7 +125,8 @@ QVector<EventRecord> loadEvents()
 bool appendEvent(const EventRecord &record)
 {
     return appendJsonLine(eventsFilePath(),
-                          QJsonObject{{QStringLiteral("timestamp"), record.timestamp.toString(Qt::ISODateWithMs)},
+                          QJsonObject{{QStringLiteral("timestamp"),
+                                       record.timestamp.toString(Qt::ISODateWithMs)},
                                       {QStringLiteral("level"), static_cast<int>(record.level)},
                                       {QStringLiteral("source"), record.source},
                                       {QStringLiteral("message"), record.message}});
@@ -157,7 +159,8 @@ bool appendTelemetry(TelemetryHistory::SeriesKind kind, const TelemetrySample &s
         return true;
     }
     return appendJsonLine(telemetryFilePath(kind),
-                          QJsonObject{{QStringLiteral("timestamp"), sample.timestamp.toString(Qt::ISODateWithMs)},
+                          QJsonObject{{QStringLiteral("timestamp"),
+                                       sample.timestamp.toString(Qt::ISODateWithMs)},
                                       {QStringLiteral("value"), sample.value}});
 }
 

@@ -104,7 +104,8 @@ bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage)
 {
     if (!layout) {
         if (errorMessage) {
-            *errorMessage = QCoreApplication::translate("SubstationLayout", "Layout output is null.");
+            *errorMessage = QCoreApplication::translate("SubstationLayout",
+                                                        "Layout output is null.");
         }
         return false;
     }
@@ -112,7 +113,9 @@ bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage)
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         if (errorMessage) {
-            *errorMessage = QCoreApplication::translate("SubstationLayout", "Unable to open layout file: %1").arg(path);
+            *errorMessage = QCoreApplication::translate("SubstationLayout",
+                                                        "Unable to open layout file: %1")
+                                .arg(path);
         }
         return false;
     }
@@ -120,7 +123,8 @@ bool loadFromFile(const QString &path, Layout *layout, QString *errorMessage)
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
     if (!document.isObject()) {
         if (errorMessage) {
-            *errorMessage = QCoreApplication::translate("SubstationLayout", "Invalid layout JSON document.");
+            *errorMessage = QCoreApplication::translate("SubstationLayout",
+                                                        "Invalid layout JSON document.");
         }
         return false;
     }
@@ -194,14 +198,12 @@ bool saveToFile(const QString &path, const Layout &layout, QString *errorMessage
             }
             return QStringLiteral("LineTerminal");
         }());
-        nodeObject.insert(QStringLiteral("position"), QJsonObject{
-            {QStringLiteral("x"), node.position.x()},
-            {QStringLiteral("y"), node.position.y()}
-        });
-        nodeObject.insert(QStringLiteral("size"), QJsonObject{
-            {QStringLiteral("width"), node.size.width()},
-            {QStringLiteral("height"), node.size.height()}
-        });
+        nodeObject.insert(QStringLiteral("position"),
+                          QJsonObject{{QStringLiteral("x"), node.position.x()},
+                                      {QStringLiteral("y"), node.position.y()}});
+        nodeObject.insert(QStringLiteral("size"),
+                          QJsonObject{{QStringLiteral("width"), node.size.width()},
+                                      {QStringLiteral("height"), node.size.height()}});
         nodeObject.insert(QStringLiteral("type"), node.type);
         nodeObject.insert(QStringLiteral("status"), node.status);
         nodeObject.insert(QStringLiteral("location"), node.location);
@@ -230,7 +232,9 @@ bool saveToFile(const QString &path, const Layout &layout, QString *errorMessage
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         if (errorMessage) {
-            *errorMessage = QCoreApplication::translate("SubstationLayout", "Unable to save layout file: %1").arg(path);
+            *errorMessage = QCoreApplication::translate("SubstationLayout",
+                                                        "Unable to save layout file: %1")
+                                .arg(path);
         }
         return false;
     }
@@ -238,7 +242,9 @@ bool saveToFile(const QString &path, const Layout &layout, QString *errorMessage
     file.write(QJsonDocument(rootObject).toJson(QJsonDocument::Indented));
     if (!file.commit()) {
         if (errorMessage) {
-            *errorMessage = QCoreApplication::translate("SubstationLayout", "Unable to finalize layout file: %1").arg(path);
+            *errorMessage = QCoreApplication::translate("SubstationLayout",
+                                                        "Unable to finalize layout file: %1")
+                                .arg(path);
         }
         return false;
     }

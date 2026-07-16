@@ -1,10 +1,10 @@
 #include "reportdialog.h"
 #include "ui_reportdialog.h"
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QCoreApplication>
 #include <QMessageBox>
 #include <QPrinter>
 #include <QRegularExpression>
@@ -29,9 +29,11 @@ QString levelText(EventLevel level)
 bool isTemperatureAlert(const EventRecord &record)
 {
     return record.source == QStringLiteral("Telemetry")
-        && (record.message.contains(QStringLiteral("Transformer temperature"), Qt::CaseInsensitive)
-            || record.message.contains(QCoreApplication::translate("ReportDialog", "Transformer temperature"),
-                                       Qt::CaseInsensitive));
+           && (record.message.contains(QStringLiteral("Transformer temperature"),
+                                       Qt::CaseInsensitive)
+               || record.message.contains(QCoreApplication::translate("ReportDialog",
+                                                                      "Transformer temperature"),
+                                          Qt::CaseInsensitive));
 }
 
 double temperatureValueFromMessage(const QString &message, bool *ok = nullptr)
@@ -56,8 +58,8 @@ double temperatureValueFromMessage(const QString &message, bool *ok = nullptr)
 QString temperatureMessagePrefix(EventLevel level)
 {
     return level == EventLevel::Critical
-        ? QCoreApplication::translate("ReportDialog", "Transformer temperature critical: ")
-        : QCoreApplication::translate("ReportDialog", "Transformer temperature warning: ");
+               ? QCoreApplication::translate("ReportDialog", "Transformer temperature critical: ")
+               : QCoreApplication::translate("ReportDialog", "Transformer temperature warning: ");
 }
 
 } // namespace
@@ -71,12 +73,8 @@ ReportDialog::ReportDialog(QWidget *parent)
     ui->fromEdit->setDateTime(QDateTime::currentDateTime().addDays(-1));
     ui->toEdit->setDateTime(QDateTime::currentDateTime());
 
-    connect(ui->fromEdit, &QDateTimeEdit::dateTimeChanged, this, [this]() {
-        refreshPreview();
-    });
-    connect(ui->toEdit, &QDateTimeEdit::dateTimeChanged, this, [this]() {
-        refreshPreview();
-    });
+    connect(ui->fromEdit, &QDateTimeEdit::dateTimeChanged, this, [this]() { refreshPreview(); });
+    connect(ui->toEdit, &QDateTimeEdit::dateTimeChanged, this, [this]() { refreshPreview(); });
     connect(ui->exportTxtButton, &QPushButton::clicked, this, &ReportDialog::exportTxt);
     connect(ui->exportPdfButton, &QPushButton::clicked, this, &ReportDialog::exportPdf);
 
@@ -107,8 +105,8 @@ QString ReportDialog::reportText(const QVector<EventRecord> &records) const
     QString text;
     QTextStream stream(&text);
     stream << tr("Power Substation Monitoring Report") << "\n";
-    stream << tr("Period: ") << ui->fromEdit->dateTime().toString("yyyy-MM-dd HH:mm:ss")
-           << " - " << ui->toEdit->dateTime().toString("yyyy-MM-dd HH:mm:ss") << "\n";
+    stream << tr("Period: ") << ui->fromEdit->dateTime().toString("yyyy-MM-dd HH:mm:ss") << " - "
+           << ui->toEdit->dateTime().toString("yyyy-MM-dd HH:mm:ss") << "\n";
     stream << tr("Included levels: Warning, Critical") << "\n";
     stream << tr("Total events: ") << records.size() << "\n\n";
     stream << temperaturePeriodsText(records);
@@ -156,7 +154,8 @@ QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records
         const EventRecord &record = temperatureRecords.at(i);
         bool currentOk = false;
         const double currentTemperature = temperatureValueFromMessage(record.message, &currentOk);
-        const bool samePeriod = periodEnd.secsTo(record.timestamp) <= 2 && record.level == periodLevel;
+        const bool samePeriod = periodEnd.secsTo(record.timestamp) <= 2
+                                && record.level == periodLevel;
         if (samePeriod) {
             periodEnd = record.timestamp;
             if (currentOk) {
@@ -165,14 +164,11 @@ QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records
             continue;
         }
 
-        stream << periodStart.toString("yyyy-MM-dd HH:mm:ss")
-               << " - " << periodEnd.toString("yyyy-MM-dd HH:mm:ss")
-               << " | " << levelText(periodLevel)
-               << " | " << tr("Telemetry")
-               << " | " << temperatureMessagePrefix(periodLevel)
-               << QString::number(startTemperature, 'f', 1)
-               << " - " << QString::number(endTemperature, 'f', 1)
-               << " C\n";
+        stream << periodStart.toString("yyyy-MM-dd HH:mm:ss") << " - "
+               << periodEnd.toString("yyyy-MM-dd HH:mm:ss") << " | " << levelText(periodLevel)
+               << " | " << tr("Telemetry") << " | " << temperatureMessagePrefix(periodLevel)
+               << QString::number(startTemperature, 'f', 1) << " - "
+               << QString::number(endTemperature, 'f', 1) << " C\n";
         periodStart = record.timestamp;
         periodEnd = record.timestamp;
         periodLevel = record.level;
@@ -180,14 +176,11 @@ QString ReportDialog::temperaturePeriodsText(const QVector<EventRecord> &records
         endTemperature = startTemperature;
     }
 
-    stream << periodStart.toString("yyyy-MM-dd HH:mm:ss")
-           << " - " << periodEnd.toString("yyyy-MM-dd HH:mm:ss")
-           << " | " << levelText(periodLevel)
-           << " | " << tr("Telemetry")
-           << " | " << temperatureMessagePrefix(periodLevel)
-           << QString::number(startTemperature, 'f', 1)
-           << " - " << QString::number(endTemperature, 'f', 1)
-           << " C\n\n";
+    stream << periodStart.toString("yyyy-MM-dd HH:mm:ss") << " - "
+           << periodEnd.toString("yyyy-MM-dd HH:mm:ss") << " | " << levelText(periodLevel) << " | "
+           << tr("Telemetry") << " | " << temperatureMessagePrefix(periodLevel)
+           << QString::number(startTemperature, 'f', 1) << " - "
+           << QString::number(endTemperature, 'f', 1) << " C\n\n";
     return text;
 }
 
@@ -197,7 +190,8 @@ void ReportDialog::refreshPreview()
     ui->exportTxtButton->setEnabled(validPeriod);
     ui->exportPdfButton->setEnabled(validPeriod);
     if (!validPeriod) {
-        ui->previewEdit->setPlainText(tr("The start of the period must not be later than its end."));
+        ui->previewEdit->setPlainText(
+            tr("The start of the period must not be later than its end."));
         return;
     }
     ui->previewEdit->setPlainText(reportText(selectedRecords()));
@@ -253,7 +247,8 @@ void ReportDialog::exportPdf()
     document.print(&printer);
 
     const QFileInfo outputFile(filePath);
-    if (printer.printerState() == QPrinter::Error || !outputFile.exists() || outputFile.size() == 0) {
+    if (printer.printerState() == QPrinter::Error || !outputFile.exists()
+        || outputFile.size() == 0) {
         QMessageBox::warning(this, tr("Export failed"), tr("Could not write PDF report."));
         return;
     }

@@ -26,8 +26,6 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
-
-
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -58,7 +56,9 @@ private:
     void rememberCurrentSelection(const QModelIndex &index);
     void restoreSelection();
     void displayEquipment(Equipment *equipment, bool fromUserAction);
-    void appendEvent(EventLevel level, const QString &source, const QString &message,
+    void appendEvent(EventLevel level,
+                     const QString &source,
+                     const QString &message,
                      const QDateTime &timestamp = QDateTime());
     Equipment *equipmentFromTreeIndex(const QModelIndex &index) const;
     Equipment *findEquipmentByName(const QString &name) const;

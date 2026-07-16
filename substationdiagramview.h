@@ -1,14 +1,14 @@
 #ifndef SUBSTATIONDIAGRAMVIEW_H
 #define SUBSTATIONDIAGRAMVIEW_H
 
+#include <QColor>
 #include <QGraphicsView>
 #include <QHash>
 #include <QList>
-#include <QColor>
-#include <QPointF>
 #include <QMap>
-#include <QSizeF>
+#include <QPointF>
 #include <QRectF>
+#include <QSizeF>
 #include <QString>
 
 #include "diagramnodeitem.h"

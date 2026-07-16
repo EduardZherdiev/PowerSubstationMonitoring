@@ -1,47 +1,47 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "aboutdialog.h"
+#include "diagramtheme.h"
 #include "equipment.h"
 #include "equipmenttreemodel.h"
-#include "diagramtheme.h"
-#include "powerflowcalculator.h"
-#include "sensortelemetry.h"
+#include "eventlogger.h"
 #include "monitoringchart.h"
-#include "telemetryhistory.h"
-#include "telemetryservice.h"
-#include "telemetrylayoutmapper.h"
+#include "powerflowcalculator.h"
+#include "reportdialog.h"
+#include "sensortelemetry.h"
+#include "settingsdialog.h"
 #include "substationdiagramview.h"
 #include "substationlayout.h"
-#include "aboutdialog.h"
-#include "eventlogger.h"
-#include "reportdialog.h"
-#include "settingsdialog.h"
+#include "telemetryhistory.h"
+#include "telemetrylayoutmapper.h"
+#include "telemetryservice.h"
 
-#include <QHeaderView>
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QClipboard>
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGraphicsScene>
-#include <QPalette>
+#include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QList>
 #include <QPair>
-#include <QStringList>
-#include <QSplitter>
+#include <QPalette>
 #include <QResizeEvent>
-#include <QSignalBlocker>
 #include <QShortcut>
-#include <QStatusBar>
-#include <QAbstractItemView>
+#include <QSignalBlocker>
 #include <QSizePolicy>
+#include <QSplitter>
+#include <QStatusBar>
+#include <QStringList>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QVector>
-#include <QDir>
 #include <memory>
 
 namespace {
@@ -147,9 +147,9 @@ bool equipmentSupportsTemperatureControl(const Equipment *equipment)
 
     const QMap<QString, QString> &parameters = equipment->parameters();
     return equipment->type().contains(QStringLiteral("Transformer"), Qt::CaseInsensitive)
-        || equipment->name().startsWith(QStringLiteral("TR-"), Qt::CaseInsensitive)
-        || parameters.contains(QStringLiteral("Temperature Sensor"))
-        || parameters.contains(QStringLiteral("Rated Temperature"));
+           || equipment->name().startsWith(QStringLiteral("TR-"), Qt::CaseInsensitive)
+           || parameters.contains(QStringLiteral("Temperature Sensor"))
+           || parameters.contains(QStringLiteral("Rated Temperature"));
 }
 
 bool equipmentSupportsVoltage(const Equipment *equipment)
@@ -160,8 +160,8 @@ bool equipmentSupportsVoltage(const Equipment *equipment)
 
     const QString type = equipment->type();
     return type.contains(QStringLiteral("Line"), Qt::CaseInsensitive)
-        || type.contains(QStringLiteral("Transformer"), Qt::CaseInsensitive)
-        || type.contains(QStringLiteral("Busbar"), Qt::CaseInsensitive);
+           || type.contains(QStringLiteral("Transformer"), Qt::CaseInsensitive)
+           || type.contains(QStringLiteral("Busbar"), Qt::CaseInsensitive);
 }
 
 bool equipmentSupportsCurrent(const Equipment *equipment)
@@ -172,16 +172,14 @@ bool equipmentSupportsCurrent(const Equipment *equipment)
 
     const QString type = equipment->type();
     return type.contains(QStringLiteral("Line"), Qt::CaseInsensitive)
-        || type.contains(QStringLiteral("Transformer"), Qt::CaseInsensitive);
+           || type.contains(QStringLiteral("Transformer"), Qt::CaseInsensitive);
 }
 
 bool isInternalParameter(const QString &key)
 {
     return key == QStringLiteral("Calculated Voltage")
-        || key == QStringLiteral("Calculated Current")
-        || key == QStringLiteral("Energized")
-        || key == QStringLiteral("Upstream")
-        || key == QStringLiteral("Flow Note");
+           || key == QStringLiteral("Calculated Current") || key == QStringLiteral("Energized")
+           || key == QStringLiteral("Upstream") || key == QStringLiteral("Flow Note");
 }
 
 bool shouldDisplayParameter(const Equipment *equipment, const QString &key)
@@ -190,8 +188,7 @@ bool shouldDisplayParameter(const Equipment *equipment, const QString &key)
         return false;
     }
 
-    if (key == QStringLiteral("Temperature")
-        || key == QStringLiteral("Temperature Sensor")
+    if (key == QStringLiteral("Temperature") || key == QStringLiteral("Temperature Sensor")
         || key == QStringLiteral("Rated Temperature")) {
         return equipmentSupportsTemperatureControl(equipment);
     }
@@ -292,10 +289,13 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 void MainWindow::applyThemePalette()
 {
     QPalette windowPalette = palette();
-    windowPalette.setColor(QPalette::Window, DiagramTheme::color(DiagramTheme::ColorRole::Background));
-    windowPalette.setColor(QPalette::Base, DiagramTheme::color(DiagramTheme::ColorRole::PanelBackground));
+    windowPalette.setColor(QPalette::Window,
+                           DiagramTheme::color(DiagramTheme::ColorRole::Background));
+    windowPalette.setColor(QPalette::Base,
+                           DiagramTheme::color(DiagramTheme::ColorRole::PanelBackground));
     windowPalette.setColor(QPalette::Text, DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
-    windowPalette.setColor(QPalette::WindowText, DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
+    windowPalette.setColor(QPalette::WindowText,
+                           DiagramTheme::color(DiagramTheme::ColorRole::PanelText));
     setPalette(windowPalette);
     ui->centralwidget->setAutoFillBackground(true);
     ui->centralwidget->setPalette(windowPalette);
@@ -371,52 +371,58 @@ void MainWindow::configureParameterPanel()
 
 void MainWindow::connectInteractions()
 {
-    connect(EventLogger::instance(), &EventLogger::eventLogged, this, [this](EventLevel level, const QString &source, const QString &message) {
-        appendEvent(level, source, message);
-    });
-    const QVector<EventRecord> storedEvents = EventLogger::instance()->records(QDateTime(), QDateTime(), false);
+    connect(EventLogger::instance(),
+            &EventLogger::eventLogged,
+            this,
+            [this](EventLevel level, const QString &source, const QString &message) {
+                appendEvent(level, source, message);
+            });
+    const QVector<EventRecord> storedEvents = EventLogger::instance()->records(QDateTime(),
+                                                                               QDateTime(),
+                                                                               false);
     const int firstVisibleEvent = qMax(0, storedEvents.size() - 1000);
     for (int index = firstVisibleEvent; index < storedEvents.size(); ++index) {
         const EventRecord &record = storedEvents.at(index);
         appendEvent(record.level, record.source, record.message, record.timestamp);
     }
 
-    connect(ui->equipmentTreeView->selectionModel(), &QItemSelectionModel::currentChanged,
-            this, [this](const QModelIndex &current, const QModelIndex &) {
+    connect(ui->equipmentTreeView->selectionModel(),
+            &QItemSelectionModel::currentChanged,
+            this,
+            [this](const QModelIndex &current, const QModelIndex &) {
                 rememberCurrentSelection(current);
                 displayEquipment(equipmentFromTreeIndex(current), true);
             });
 
-    connect(diagramView, &SubstationDiagramView::equipmentActivated, this, [this](const QString &equipmentKey) {
-        Equipment *selectedEquipment = findEquipmentByName(equipmentKey);
-        displayEquipment(selectedEquipment, true);
-        QModelIndex equipmentIndex = equipmentModel->indexForEquipment(selectedEquipment);
-        if (equipmentIndex.isValid()) {
-            QSignalBlocker blocker(ui->equipmentTreeView->selectionModel());
-            ui->equipmentTreeView->setCurrentIndex(equipmentIndex);
-        }
-    });
-    connect(ui->actionAbout, &QAction::triggered, this,[this]() {
+    connect(diagramView,
+            &SubstationDiagramView::equipmentActivated,
+            this,
+            [this](const QString &equipmentKey) {
+                Equipment *selectedEquipment = findEquipmentByName(equipmentKey);
+                displayEquipment(selectedEquipment, true);
+                QModelIndex equipmentIndex = equipmentModel->indexForEquipment(selectedEquipment);
+                if (equipmentIndex.isValid()) {
+                    QSignalBlocker blocker(ui->equipmentTreeView->selectionModel());
+                    ui->equipmentTreeView->setCurrentIndex(equipmentIndex);
+                }
+            });
+    connect(ui->actionAbout, &QAction::triggered, this, [this]() {
         AboutDialog aboutDialog(this);
         aboutDialog.exec();
     });
     connect(ui->actionLoad, &QAction::triggered, this, [this]() {
-        const QString layoutPath = QFileDialog::getOpenFileName(
-            this,
-            tr("Load scheme"),
-            QDir::currentPath(),
-            tr("Substation schemes (*.json);;All files (*.*)"));
+        const QString layoutPath
+            = QFileDialog::getOpenFileName(this,
+                                           tr("Load scheme"),
+                                           QDir::currentPath(),
+                                           tr("Substation schemes (*.json);;All files (*.*)"));
         if (!layoutPath.isEmpty()) {
             loadSubstationLayoutFile(layoutPath);
         }
     });
-    connect(ui->actionSave, &QAction::triggered, this, [this]() {
-        saveSubstationLayout(false);
-    });
-    connect(ui->actionSave_as, &QAction::triggered, this, [this]() {
-        saveSubstationLayout(true);
-    });
-    connect(ui->actionSettings, &QAction::triggered, this,[this]() {
+    connect(ui->actionSave, &QAction::triggered, this, [this]() { saveSubstationLayout(false); });
+    connect(ui->actionSave_as, &QAction::triggered, this, [this]() { saveSubstationLayout(true); });
+    connect(ui->actionSettings, &QAction::triggered, this, [this]() {
         SettingsDialog settingsDialog(this);
         settingsDialog.exec();
     });
@@ -465,16 +471,14 @@ void MainWindow::connectInteractions()
                 tr("Transformer temperature set to %1").arg(formatC(temperature)));
         m_telemetryService->setManualTemperature(temperature);
     });
-
 }
 
 void MainWindow::loadSubstationLayout()
 {
-    const QStringList candidatePaths = {
-        SubstationLayout::defaultLayoutPath(),
-        QDir::current().filePath(QStringLiteral("substation_layout.json")),
-        QDir::current().filePath(QStringLiteral("data/substation_layout.json"))
-    };
+    const QStringList candidatePaths
+        = {SubstationLayout::defaultLayoutPath(),
+           QDir::current().filePath(QStringLiteral("substation_layout.json")),
+           QDir::current().filePath(QStringLiteral("data/substation_layout.json"))};
 
     for (const QString &layoutPath : candidatePaths) {
         if (loadSubstationLayoutFile(layoutPath)) {
@@ -514,11 +518,11 @@ bool MainWindow::saveSubstationLayout(bool saveAs)
 {
     QString layoutPath = m_currentLayoutPath;
     if (saveAs || layoutPath.isEmpty()) {
-        layoutPath = QFileDialog::getSaveFileName(
-            this,
-            tr("Save scheme"),
-            layoutPath.isEmpty() ? QDir::currentPath() : layoutPath,
-            tr("Substation schemes (*.json);;All files (*.*)"));
+        layoutPath
+            = QFileDialog::getSaveFileName(this,
+                                           tr("Save scheme"),
+                                           layoutPath.isEmpty() ? QDir::currentPath() : layoutPath,
+                                           tr("Substation schemes (*.json);;All files (*.*)"));
         if (layoutPath.isEmpty()) {
             return false;
         }
@@ -549,8 +553,8 @@ void MainWindow::updateLayoutFileLabel()
     }
 
     const QString fileName = m_currentLayoutPath.isEmpty()
-        ? tr("No scheme file")
-        : QFileInfo(m_currentLayoutPath).fileName();
+                                 ? tr("No scheme file")
+                                 : QFileInfo(m_currentLayoutPath).fileName();
     m_layoutFileLabel->setText(tr("Scheme: %1").arg(fileName));
     m_layoutFileLabel->setToolTip(m_currentLayoutPath);
 }
@@ -577,10 +581,14 @@ void MainWindow::setupMonitoringCharts()
 
 void MainWindow::startTelemetryMonitoring()
 {
-    connect(m_telemetryService, &TelemetryService::snapshotReady,
-            this, &MainWindow::processSnapshot);
-    connect(m_telemetryService, &TelemetryService::connectionStateChanged,
-            this, &MainWindow::updateConnectionState);
+    connect(m_telemetryService,
+            &TelemetryService::snapshotReady,
+            this,
+            &MainWindow::processSnapshot);
+    connect(m_telemetryService,
+            &TelemetryService::connectionStateChanged,
+            this,
+            &MainWindow::updateConnectionState);
     updateConnectionState(m_telemetryService->connectionState());
     m_telemetryService->start(1000);
 }
@@ -644,9 +652,11 @@ void MainWindow::emitTemperatureAlerts(const SensorSnapshot &snapshot)
     constexpr double criticalThreshold = 85.0;
     const double current = snapshot.transformerTemperatureC;
     if (current >= criticalThreshold) {
-        logCritical(QStringLiteral("Telemetry"), tr("Transformer temperature critical: %1").arg(formatC(current)));
+        logCritical(QStringLiteral("Telemetry"),
+                    tr("Transformer temperature critical: %1").arg(formatC(current)));
     } else if (current >= warningThreshold) {
-        logWarning(QStringLiteral("Telemetry"), tr("Transformer temperature warning: %1").arg(formatC(current)));
+        logWarning(QStringLiteral("Telemetry"),
+                   tr("Transformer temperature warning: %1").arg(formatC(current)));
     }
 }
 
@@ -657,24 +667,39 @@ void MainWindow::processSnapshot(const SensorSnapshot &adjustedSnapshot)
     }
 
     const QDateTime sampleTime = QDateTime::currentDateTime();
-    const double monitoredVoltageKv = adjustedSnapshot.breakerClosed ? adjustedSnapshot.sourceVoltageKv : 0.0;
-    const double monitoredCurrentA = adjustedSnapshot.breakerClosed ? adjustedSnapshot.sourceCurrentA : 0.0;
-    TelemetryHistory::appendSample(TelemetryHistory::SeriesKind::Voltage, TelemetrySample{sampleTime, monitoredVoltageKv});
-    TelemetryHistory::appendSample(TelemetryHistory::SeriesKind::Current, TelemetrySample{sampleTime, monitoredCurrentA});
+    const double monitoredVoltageKv = adjustedSnapshot.breakerClosed
+                                          ? adjustedSnapshot.sourceVoltageKv
+                                          : 0.0;
+    const double monitoredCurrentA = adjustedSnapshot.breakerClosed
+                                         ? adjustedSnapshot.sourceCurrentA
+                                         : 0.0;
+    TelemetryHistory::appendSample(TelemetryHistory::SeriesKind::Voltage,
+                                   TelemetrySample{sampleTime, monitoredVoltageKv});
+    TelemetryHistory::appendSample(TelemetryHistory::SeriesKind::Current,
+                                   TelemetrySample{sampleTime, monitoredCurrentA});
     TelemetryHistory::appendSample(TelemetryHistory::SeriesKind::Temperature,
-                                   TelemetrySample{sampleTime, adjustedSnapshot.transformerTemperatureC});
+                                   TelemetrySample{sampleTime,
+                                                   adjustedSnapshot.transformerTemperatureC});
 
     if (m_hasLastSnapshot) {
         if (m_lastSnapshot.breakerClosed != adjustedSnapshot.breakerClosed) {
-            logWarning(QStringLiteral("Telemetry"), adjustedSnapshot.breakerClosed ? tr("CB-1 closed") : tr("CB-1 opened"));
+            logWarning(QStringLiteral("Telemetry"),
+                       adjustedSnapshot.breakerClosed ? tr("CB-1 closed") : tr("CB-1 opened"));
         }
 
-        if (adjustedSnapshot.sourceVoltageKv > m_lastSnapshot.sourceVoltageKv + 2.0 || adjustedSnapshot.sourceVoltageKv < m_lastSnapshot.sourceVoltageKv - 2.0) {
-            logInfo(QStringLiteral("Telemetry"), tr("Source voltage changed to %1").arg(formatKv(adjustedSnapshot.sourceVoltageKv)));
+        if (adjustedSnapshot.sourceVoltageKv > m_lastSnapshot.sourceVoltageKv + 2.0
+            || adjustedSnapshot.sourceVoltageKv < m_lastSnapshot.sourceVoltageKv - 2.0) {
+            logInfo(QStringLiteral("Telemetry"),
+                    tr("Source voltage changed to %1")
+                        .arg(formatKv(adjustedSnapshot.sourceVoltageKv)));
         }
 
-        if (adjustedSnapshot.transformerTemperatureC > m_lastSnapshot.transformerTemperatureC + 1.5 || adjustedSnapshot.transformerTemperatureC < m_lastSnapshot.transformerTemperatureC - 1.5) {
-            logInfo(QStringLiteral("Telemetry"), tr("Transformer temperature changed to %1").arg(formatC(adjustedSnapshot.transformerTemperatureC)));
+        if (adjustedSnapshot.transformerTemperatureC > m_lastSnapshot.transformerTemperatureC + 1.5
+            || adjustedSnapshot.transformerTemperatureC
+                   < m_lastSnapshot.transformerTemperatureC - 1.5) {
+            logInfo(QStringLiteral("Telemetry"),
+                    tr("Transformer temperature changed to %1")
+                        .arg(formatC(adjustedSnapshot.transformerTemperatureC)));
         }
     }
 
@@ -724,7 +749,9 @@ void MainWindow::refreshMonitoringCharts()
 
     if (!ui->voltage->isHidden()) {
         MonitoringChart::render(m_voltageScene,
-                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Voltage, endTime, windowSeconds),
+                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Voltage,
+                                                         endTime,
+                                                         windowSeconds),
                                 tr("Voltage"),
                                 QStringLiteral("kV"),
                                 QColor(0x56, 0xC2, 0xFF),
@@ -734,7 +761,9 @@ void MainWindow::refreshMonitoringCharts()
 
     if (!ui->current->isHidden()) {
         MonitoringChart::render(m_currentScene,
-                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Current, endTime, windowSeconds),
+                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Current,
+                                                         endTime,
+                                                         windowSeconds),
                                 tr("Current"),
                                 QStringLiteral("A"),
                                 QColor(0xFF, 0xB8, 0x6B),
@@ -744,7 +773,9 @@ void MainWindow::refreshMonitoringCharts()
 
     if (!ui->temperature->isHidden()) {
         MonitoringChart::render(m_temperatureScene,
-                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Temperature, endTime, windowSeconds),
+                                TelemetryHistory::series(TelemetryHistory::SeriesKind::Temperature,
+                                                         endTime,
+                                                         windowSeconds),
                                 tr("Temperature"),
                                 QStringLiteral("C"),
                                 QColor(0xD9, 0x2D, 0x20),
@@ -807,7 +838,8 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     ui->typeValueLabel->setText(translatedEquipmentType(equipment->type()));
     ui->statusValueLabel->setText(translatedEquipmentStatus(equipment->status()));
     ui->locationValueLabel->setText(equipment->location().isEmpty() ? "-" : equipment->location());
-    ui->descriptionValueLabel->setText(equipment->description().isEmpty() ? "-" : equipment->description());
+    ui->descriptionValueLabel->setText(
+        equipment->description().isEmpty() ? "-" : equipment->description());
     updateBreakerControls(equipment);
     updateTemperatureControls(equipment);
     updateMonitoringVisibility(equipment);
@@ -825,7 +857,9 @@ void MainWindow::displayEquipment(Equipment *equipment, bool fromUserAction)
     ui->parametersTable->setRowCount(visibleParameters.size());
     int row = 0;
     for (const auto &parameter : visibleParameters) {
-        ui->parametersTable->setItem(row, 0, new QTableWidgetItem(translatedParameterName(parameter.first)));
+        ui->parametersTable->setItem(row,
+                                     0,
+                                     new QTableWidgetItem(translatedParameterName(parameter.first)));
         ui->parametersTable->setItem(row, 1, new QTableWidgetItem(parameter.second));
         ++row;
     }
@@ -871,8 +905,8 @@ void MainWindow::updateTemperatureControls(Equipment *equipment)
 
     const QSignalBlocker blocker(ui->temperatureSpinBox);
     const double displayedTemperature = m_hasLastSnapshot
-        ? m_telemetryService->displayedTemperature()
-        : 68.0;
+                                            ? m_telemetryService->displayedTemperature()
+                                            : 68.0;
     ui->temperatureSpinBox->setValue(displayedTemperature);
 }
 
@@ -890,17 +924,17 @@ void MainWindow::appendEvent(EventLevel level,
 
     QTableWidgetItem *levelItem = new QTableWidgetItem();
     switch (level) {
-        case EventLevel::Info:
-            levelItem->setText(tr("Info"));
-            break;
-        case EventLevel::Warning:
-            levelItem->setText(tr("Warning"));
-            levelItem->setForeground(Qt::yellow);
-            break;
-        case EventLevel::Critical:
-            levelItem->setText(tr("Critical"));
-            levelItem->setForeground(Qt::red);
-            break;
+    case EventLevel::Info:
+        levelItem->setText(tr("Info"));
+        break;
+    case EventLevel::Warning:
+        levelItem->setText(tr("Warning"));
+        levelItem->setForeground(Qt::yellow);
+        break;
+    case EventLevel::Critical:
+        levelItem->setText(tr("Critical"));
+        levelItem->setForeground(Qt::red);
+        break;
     }
     const QDateTime eventTime = timestamp.isValid() ? timestamp : QDateTime::currentDateTime();
     QTableWidgetItem *timeItem = new QTableWidgetItem(eventTime.toString("yyyy-MM-dd HH:mm:ss"));

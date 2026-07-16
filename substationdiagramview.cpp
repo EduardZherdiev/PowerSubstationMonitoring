@@ -7,13 +7,13 @@
 
 #include <QBrush>
 #include <QFont>
+#include <QFrame>
 #include <QGraphicsScene>
 #include <QLineF>
 #include <QPainter>
 #include <QPen>
 #include <QPointF>
 #include <QRectF>
-#include <QFrame>
 #include <QResizeEvent>
 #include <QShowEvent>
 
@@ -32,7 +32,6 @@ SubstationDiagramView::SubstationDiagramView(QWidget *parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setAlignment(Qt::AlignCenter);
     setDragMode(QGraphicsView::ScrollHandDrag);
-
 }
 
 void SubstationDiagramView::setLayout(const SubstationLayout::Layout &layout)
@@ -118,7 +117,10 @@ DiagramNodeItem *SubstationDiagramView::addNode(const SubstationLayout::NodeSpec
     node->setPos(nodeSpec.position);
     m_scene->addItem(node);
     connect(node, &DiagramNodeItem::activated, this, &SubstationDiagramView::equipmentActivated);
-    connect(node, &DiagramNodeItem::positionChanged, this, &SubstationDiagramView::updateNodePosition);
+    connect(node,
+            &DiagramNodeItem::positionChanged,
+            this,
+            &SubstationDiagramView::updateNodePosition);
     m_nodes.insert(nodeSpec.id, node);
     return node;
 }
@@ -131,9 +133,14 @@ void SubstationDiagramView::addConnection(const SubstationLayout::ConnectionSpec
     Q_UNUSED(connectionSpec.width)
     const QColor resolvedColor = DiagramTheme::color(DiagramTheme::ColorRole::Branch);
     const QLineF line(anchorPoint(sourceNode, targetNode), anchorPoint(targetNode, sourceNode));
-    auto *link = new DiagramLinkItem(connectionSpec.fromId, connectionSpec.toId, line, resolvedColor, 2.0);
+    auto *link = new DiagramLinkItem(connectionSpec.fromId,
+                                     connectionSpec.toId,
+                                     line,
+                                     resolvedColor,
+                                     2.0);
     m_scene->addItem(link);
-    m_connections.append(ConnectionRecord{connectionSpec.fromId, connectionSpec.toId, sourceNode, targetNode, link});
+    m_connections.append(
+        ConnectionRecord{connectionSpec.fromId, connectionSpec.toId, sourceNode, targetNode, link});
 }
 
 void SubstationDiagramView::drawBackground(QPainter *painter, const QRectF &rect)
@@ -178,7 +185,8 @@ void SubstationDiagramView::buildDiagram()
 
     DiagramNodeItem *sourceNode;
     DiagramNodeItem *targetNode;
-    for (const SubstationLayout::ConnectionSpec &connectionSpec : std::as_const(m_layout.connections)) {
+    for (const SubstationLayout::ConnectionSpec &connectionSpec :
+         std::as_const(m_layout.connections)) {
         targetNode = m_nodes.value(connectionSpec.toId, nullptr);
         sourceNode = m_nodes.value(connectionSpec.fromId, nullptr);
         if (!sourceNode || !targetNode) {
@@ -198,7 +206,8 @@ void SubstationDiagramView::buildDiagram()
     m_fitPending = true;
 }
 
-QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem *node, const DiagramNodeItem *other) const
+QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem *node,
+                                           const DiagramNodeItem *other) const
 {
     if (!node || !other) {
         return QPointF();
@@ -215,8 +224,8 @@ QPointF SubstationDiagramView::anchorPoint(const DiagramNodeItem *node, const Di
 
     const qreal halfWidth = qMax<qreal>(1.0, rect.width() / 2.0);
     const qreal halfHeight = qMax<qreal>(1.0, rect.height() / 2.0);
-    const qreal scale = 1.0 / qMax(qAbs(direction.x()) / halfWidth,
-                                  qAbs(direction.y()) / halfHeight);
+    const qreal scale = 1.0
+                        / qMax(qAbs(direction.x()) / halfWidth, qAbs(direction.y()) / halfHeight);
     return center + direction * scale;
 }
 
@@ -224,8 +233,9 @@ void SubstationDiagramView::updateConnectionLines()
 {
     for (const ConnectionRecord &connection : std::as_const(m_connections)) {
         if (connection.item && connection.sourceNode && connection.targetNode) {
-            connection.item->setLine(QLineF(anchorPoint(connection.sourceNode, connection.targetNode),
-                                            anchorPoint(connection.targetNode, connection.sourceNode)));
+            connection.item->setLine(
+                QLineF(anchorPoint(connection.sourceNode, connection.targetNode),
+                       anchorPoint(connection.targetNode, connection.sourceNode)));
         }
     }
 }

@@ -8,11 +8,7 @@ class QTranslator;
 
 namespace AppSettings {
 
-enum class ThemeMode {
-    System,
-    Dark,
-    Light
-};
+enum class ThemeMode { System, Dark, Light };
 
 struct Settings
 {

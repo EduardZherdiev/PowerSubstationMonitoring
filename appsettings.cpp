@@ -4,17 +4,17 @@
 
 #include <QApplication>
 #include <QComboBox>
+#include <QDateEdit>
 #include <QDir>
 #include <QFile>
 #include <QGroupBox>
 #include <QLayout>
-#include <QDateEdit>
 #include <QRadioButton>
-#include <QWidget>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QTranslator>
+#include <QWidget>
 
 namespace AppSettings {
 
@@ -55,7 +55,8 @@ Settings load()
     Settings settings;
     QSettings ini(settingsFilePath(), QSettings::IniFormat);
     ini.beginGroup(QStringLiteral("appearance"));
-    settings.theme = themeFromString(ini.value(QStringLiteral("theme"), themeToString(settings.theme)).toString());
+    settings.theme = themeFromString(
+        ini.value(QStringLiteral("theme"), themeToString(settings.theme)).toString());
     settings.language = ini.value(QStringLiteral("language"), settings.language).toString();
     ini.endGroup();
     return settings;
@@ -81,8 +82,8 @@ void applyTheme(QApplication &application, ThemeMode theme)
         themeStyleSheet.clear();
     } else {
         const QString resourcePath = theme == ThemeMode::Dark
-            ? QStringLiteral(":/dark/stylesheet.qss")
-            : QStringLiteral(":/light/stylesheet.qss");
+                                         ? QStringLiteral(":/dark/stylesheet.qss")
+                                         : QStringLiteral(":/light/stylesheet.qss");
 
         QFile file(resourcePath);
         if (!file.open(QFile::ReadOnly | QFile::Text)) {
@@ -118,8 +119,8 @@ void applyTheme(QApplication &application, ThemeMode theme)
             if (QLayout *layout = groupBox->layout()) {
                 layout->setContentsMargins(9, 9, 9, 9);
                 layout->setSpacing(6);
-                groupBox->setMinimumHeight(qMax(groupBox->minimumHeight(),
-                                                layout->sizeHint().height() + 9));
+                groupBox->setMinimumHeight(
+                    qMax(groupBox->minimumHeight(), layout->sizeHint().height() + 9));
             }
         }
         widget->update();

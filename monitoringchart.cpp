@@ -1,18 +1,18 @@
 #include "monitoringchart.h"
 
-#include <QDateTime>
+#include <QBrush>
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QFont>
 #include <QGraphicsEllipseItem>
-#include <QGraphicsTextItem>
 #include <QGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
+#include <QGraphicsTextItem>
 #include <QGraphicsView>
-#include <QPainterPath>
-#include <QPen>
-#include <QBrush>
 #include <QHash>
 #include <QLineF>
+#include <QPainterPath>
+#include <QPen>
 #include <QVariant>
 
 #include <algorithm>
@@ -71,7 +71,8 @@ void updatePointSelection(QGraphicsScene *scene)
         const QColor baseColor = point->data(3).value<QColor>();
         const QColor outlineColor = point->data(4).value<QColor>();
         point->setBrush(isSelected ? baseColor.lighter(130) : Qt::transparent);
-        point->setPen(QPen(isSelected ? outlineColor.lighter(130) : Qt::transparent, isSelected ? 2.2 : 0.0));
+        point->setPen(
+            QPen(isSelected ? outlineColor.lighter(130) : Qt::transparent, isSelected ? 2.2 : 0.0));
         point->setZValue(isSelected ? 3.0 : 2.0);
     }
 
@@ -80,12 +81,14 @@ void updatePointSelection(QGraphicsScene *scene)
     }
 
     if (selectedPoint) {
-        const QDateTime timestamp = QDateTime::fromSecsSinceEpoch(selectedPoint->data(0).toLongLong());
+        const QDateTime timestamp = QDateTime::fromSecsSinceEpoch(
+            selectedPoint->data(0).toLongLong());
         const TelemetrySample sample{timestamp, selectedPoint->data(1).toDouble()};
         const QString unit = selectedPoint->data(2).toString();
         state.selectedTimestamp = selectedPoint->data(0).toLongLong();
-        state.detailsItem->setPlainText(QCoreApplication::translate("MonitoringChart", "Selected: %1")
-                                            .arg(formatPointText(sample, unit)));
+        state.detailsItem->setPlainText(
+            QCoreApplication::translate("MonitoringChart", "Selected: %1")
+                .arg(formatPointText(sample, unit)));
     } else {
         state.detailsItem->setPlainText(state.defaultDetailsText);
     }
@@ -127,9 +130,7 @@ namespace MonitoringChart {
 Scene *createScene(QObject *parent)
 {
     auto *scene = new Scene(parent);
-    QObject::connect(scene, &QObject::destroyed, [scene]() {
-        chartStates().remove(scene);
-    });
+    QObject::connect(scene, &QObject::destroyed, [scene]() { chartStates().remove(scene); });
     return scene;
 }
 
@@ -153,7 +154,8 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
             continue;
         }
 
-        const qreal distance = QLineF(event->scenePos(), point->sceneBoundingRect().center()).length();
+        const qreal distance = QLineF(event->scenePos(), point->sceneBoundingRect().center())
+                                   .length();
         if (distance < closestDistance) {
             closestDistance = distance;
             closestPoint = point;
@@ -203,7 +205,9 @@ void render(QGraphicsScene *scene,
     titleItem->setPos(10, 4);
 
     if (history.isEmpty()) {
-        QGraphicsTextItem *emptyItem = scene->addText(QCoreApplication::translate("MonitoringChart", "No data"), labelFont);
+        QGraphicsTextItem *emptyItem = scene->addText(QCoreApplication::translate("MonitoringChart",
+                                                                                  "No data"),
+                                                      labelFont);
         emptyItem->setDefaultTextColor(textColor);
         emptyItem->setPos(10, size.height() / 2.0 - 10.0);
         return;
@@ -221,7 +225,9 @@ void render(QGraphicsScene *scene,
     }
 
     if (visible.isEmpty()) {
-        QGraphicsTextItem *emptyItem = scene->addText(QCoreApplication::translate("MonitoringChart", "No data in period"), labelFont);
+        QGraphicsTextItem *emptyItem
+            = scene->addText(QCoreApplication::translate("MonitoringChart", "No data in period"),
+                             labelFont);
         emptyItem->setDefaultTextColor(textColor);
         emptyItem->setPos(10, size.height() / 2.0 - 10.0);
         return;
@@ -251,12 +257,17 @@ void render(QGraphicsScene *scene,
         const double fraction = static_cast<double>(i) / axisSteps;
         const qreal y = plotRect.top() + plotRect.height() * fraction;
         const double value = maxValue - (maxValue - minValue) * fraction;
-        scene->addLine(plotRect.left(), y, plotRect.right(), y, QPen(textColor.lighter(145), 0.45, Qt::SolidLine));
+        scene->addLine(plotRect.left(),
+                       y,
+                       plotRect.right(),
+                       y,
+                       QPen(textColor.lighter(145), 0.45, Qt::SolidLine));
 
         QGraphicsTextItem *axisItem = scene->addText(formatAxisValue(value, unit), axisFont);
         axisItem->setDefaultTextColor(textColor);
         const QRectF bounds = axisItem->boundingRect();
-        axisItem->setPos(qMax<qreal>(4.0, plotRect.left() - bounds.width() - 8.0), y - bounds.height() / 2.0);
+        axisItem->setPos(qMax<qreal>(4.0, plotRect.left() - bounds.width() - 8.0),
+                         y - bounds.height() / 2.0);
     }
 
     const int tickCount = 5;
@@ -291,12 +302,14 @@ void render(QGraphicsScene *scene,
             path.lineTo(x, y);
         }
 
-        const bool isInteractivePoint = sampleIndex % interactiveStep == 0 || sampleIndex == visible.size() - 1;
+        const bool isInteractivePoint = sampleIndex % interactiveStep == 0
+                                        || sampleIndex == visible.size() - 1;
         if (!isInteractivePoint) {
             continue;
         }
 
-        QGraphicsEllipseItem *point = scene->addEllipse(x - 3.5, y - 3.5, 7.0, 7.0, QPen(Qt::NoPen), QBrush(Qt::NoBrush));
+        QGraphicsEllipseItem *point
+            = scene->addEllipse(x - 3.5, y - 3.5, 7.0, 7.0, QPen(Qt::NoPen), QBrush(Qt::NoBrush));
         point->setFlag(QGraphicsItem::ItemIsSelectable, true);
         point->setAcceptedMouseButtons(Qt::LeftButton);
         point->setData(0, sample.timestamp.toSecsSinceEpoch());
@@ -314,13 +327,13 @@ void render(QGraphicsScene *scene,
     state.defaultDetailsText = QCoreApplication::translate("MonitoringChart", "Current: %1")
                                    .arg(formatPointText(visible.last(), unit));
 
-    QGraphicsTextItem *statsItem = scene->addText(
-        QCoreApplication::translate("MonitoringChart", "%1 %2  min %3  max %4")
-            .arg(QString::number(visible.last().value, 'f', 1),
-                 unit,
-                 QString::number(minValue, 'f', 1),
-                 QString::number(maxValue, 'f', 1)),
-        labelFont);
+    QGraphicsTextItem *statsItem
+        = scene->addText(QCoreApplication::translate("MonitoringChart", "%1 %2  min %3  max %4")
+                             .arg(QString::number(visible.last().value, 'f', 1),
+                                  unit,
+                                  QString::number(minValue, 'f', 1),
+                                  QString::number(maxValue, 'f', 1)),
+                         labelFont);
     statsItem->setDefaultTextColor(textColor);
     statsItem->setPos(10, size.height() - 24.0);
 
@@ -328,7 +341,9 @@ void render(QGraphicsScene *scene,
     state.detailsItem->setDefaultTextColor(textColor);
     state.detailsItem->setPos(plotRect.left(), qMax<qreal>(0.0, plotRect.top() - 22.0));
 
-    QGraphicsTextItem *windowItem = scene->addText(QStringLiteral("%1").arg(timeText(endTime, windowSeconds)), axisFont);
+    QGraphicsTextItem *windowItem = scene->addText(QStringLiteral("%1").arg(
+                                                       timeText(endTime, windowSeconds)),
+                                                   axisFont);
     windowItem->setDefaultTextColor(textColor);
     windowItem->setPos(size.width() - windowItem->boundingRect().width() - 12.0, 6.0);
 

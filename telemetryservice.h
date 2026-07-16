@@ -14,11 +14,7 @@ class TelemetryService : public QObject
     Q_OBJECT
 
 public:
-    enum class ConnectionState {
-        Disconnected,
-        Connecting,
-        Connected
-    };
+    enum class ConnectionState { Disconnected, Connecting, Connected };
     Q_ENUM(ConnectionState)
 
     explicit TelemetryService(std::unique_ptr<ITelemetrySource> source, QObject *parent = nullptr);

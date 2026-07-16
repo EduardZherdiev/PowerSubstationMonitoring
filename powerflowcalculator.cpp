@@ -1,11 +1,11 @@
 #include "powerflowcalculator.h"
 
-#include <QtMath>
 #include <QHash>
-#include <QSet>
 #include <QQueue>
 #include <QRegularExpression>
+#include <QSet>
 #include <QStringList>
+#include <QtMath>
 
 namespace {
 
@@ -156,13 +156,11 @@ double parseTransformerRatio(const SubstationLayout::NodeSpec &node, bool *ok = 
     double ratio = 0.0;
     QMap<QString, QString>::const_iterator it;
 
-    const QStringList ratioKeys = {
-        QStringLiteral("Transformation Ratio"),
-        QStringLiteral("Transformation Coefficient"),
-        QStringLiteral("Transformer Ratio"),
-        QStringLiteral("Turns Ratio"),
-        QStringLiteral("Ratio")
-    };
+    const QStringList ratioKeys = {QStringLiteral("Transformation Ratio"),
+                                   QStringLiteral("Transformation Coefficient"),
+                                   QStringLiteral("Transformer Ratio"),
+                                   QStringLiteral("Turns Ratio"),
+                                   QStringLiteral("Ratio")};
     for (const QString &key : ratioKeys) {
         it = node.parameters.constFind(key);
         if (it != node.parameters.constEnd()) {
@@ -226,17 +224,20 @@ QString elementKind(const SubstationLayout::NodeSpec &node)
 
 QString voltageText(const PowerFlowCalculator::NodeState &state)
 {
-    return state.hasVoltage ? QStringLiteral("%1 kV").arg(formatNumber(state.voltageKv, 2)) : QStringLiteral("-");
+    return state.hasVoltage ? QStringLiteral("%1 kV").arg(formatNumber(state.voltageKv, 2))
+                            : QStringLiteral("-");
 }
 
 QString currentText(const PowerFlowCalculator::NodeState &state)
 {
-    return state.hasCurrent ? QStringLiteral("%1 A").arg(formatNumber(state.currentA, 2)) : QStringLiteral("-");
+    return state.hasCurrent ? QStringLiteral("%1 A").arg(formatNumber(state.currentA, 2))
+                            : QStringLiteral("-");
 }
 
 QString temperatureText(const PowerFlowCalculator::NodeState &state)
 {
-    return state.hasTemperature ? QStringLiteral("%1 C").arg(formatNumber(state.temperatureC, 1)) : QStringLiteral("-");
+    return state.hasTemperature ? QStringLiteral("%1 C").arg(formatNumber(state.temperatureC, 1))
+                                : QStringLiteral("-");
 }
 
 PowerFlowCalculator::NodeState sourceStateFor(const SubstationLayout::NodeSpec &node)
@@ -261,8 +262,8 @@ PowerFlowCalculator::NodeState sourceStateFor(const SubstationLayout::NodeSpec &
     return state;
 }
 
-PowerFlowCalculator::NodeState propagateThroughBreaker(const PowerFlowCalculator::NodeState &incoming,
-                                                       const SubstationLayout::NodeSpec &node)
+PowerFlowCalculator::NodeState propagateThroughBreaker(
+    const PowerFlowCalculator::NodeState &incoming, const SubstationLayout::NodeSpec &node)
 {
     if (!isBreakerClosed(node)) {
         PowerFlowCalculator::NodeState blocked;
@@ -277,8 +278,8 @@ PowerFlowCalculator::NodeState propagateThroughBreaker(const PowerFlowCalculator
     return state;
 }
 
-PowerFlowCalculator::NodeState propagateThroughTransformer(const PowerFlowCalculator::NodeState &incoming,
-                                                          const SubstationLayout::NodeSpec &node)
+PowerFlowCalculator::NodeState propagateThroughTransformer(
+    const PowerFlowCalculator::NodeState &incoming, const SubstationLayout::NodeSpec &node)
 {
     PowerFlowCalculator::NodeState state = incoming;
     state.note = QStringLiteral("Transformer");
@@ -307,7 +308,8 @@ PowerFlowCalculator::NodeState propagateThroughTransformer(const PowerFlowCalcul
 
         if (currentOk && state.hasVoltage && state.voltageKv > 0.0) {
             const double apparentPowerMva = ratedMva * qMax(0.0, loadPercent) / 100.0;
-            state.currentA = (apparentPowerMva * 1'000'000.0) / (qSqrt(3.0) * state.voltageKv * 1000.0);
+            state.currentA = (apparentPowerMva * 1'000'000.0)
+                             / (qSqrt(3.0) * state.voltageKv * 1000.0);
             state.hasCurrent = true;
         }
     }
@@ -322,7 +324,8 @@ PowerFlowCalculator::NodeState propagateThroughTransformer(const PowerFlowCalcul
         state.hasCurrent = true;
     }
 
-    const auto temperatureSensorIt = node.parameters.constFind(QStringLiteral("Temperature Sensor"));
+    const auto temperatureSensorIt = node.parameters.constFind(
+        QStringLiteral("Temperature Sensor"));
     if (temperatureSensorIt != node.parameters.constEnd()) {
         const QString sensorId = temperatureSensorIt.value().trimmed();
         if (!sensorId.isEmpty()) {
@@ -334,8 +337,8 @@ PowerFlowCalculator::NodeState propagateThroughTransformer(const PowerFlowCalcul
 }
 
 PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &node,
-                                            const PowerFlowCalculator::NodeState &incoming,
-                                            const QMap<QString, double> &temperatureBySensor)
+                                             const PowerFlowCalculator::NodeState &incoming,
+                                             const QMap<QString, double> &temperatureBySensor)
 {
     const QString kind = elementKind(node);
     if (kind == QStringLiteral("breaker")) {
@@ -344,7 +347,8 @@ PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &n
 
     if (kind == QStringLiteral("transformer")) {
         PowerFlowCalculator::NodeState state = propagateThroughTransformer(incoming, node);
-        const auto temperatureSensorIt = node.parameters.constFind(QStringLiteral("Temperature Sensor"));
+        const auto temperatureSensorIt = node.parameters.constFind(
+            QStringLiteral("Temperature Sensor"));
         if (temperatureSensorIt != node.parameters.constEnd()) {
             const QString sensorId = temperatureSensorIt.value().trimmed();
             const auto sensorIt = temperatureBySensor.constFind(sensorId);
@@ -355,7 +359,8 @@ PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &n
         }
 
         if (!state.hasTemperature) {
-            const auto directTemperatureIt = node.parameters.constFind(QStringLiteral("Temperature"));
+            const auto directTemperatureIt = node.parameters.constFind(
+                QStringLiteral("Temperature"));
             if (directTemperatureIt != node.parameters.constEnd()) {
                 bool temperatureOk = false;
                 state.temperatureC = parseTemperatureC(directTemperatureIt.value(), &temperatureOk);
@@ -368,7 +373,7 @@ PowerFlowCalculator::NodeState propagateNode(const SubstationLayout::NodeSpec &n
     PowerFlowCalculator::NodeState state = incoming;
     state.note = kind == QStringLiteral("busbar") ? QStringLiteral("Busbar")
                  : kind == QStringLiteral("line") ? QStringLiteral("Line section")
-                 : QStringLiteral("Pass-through");
+                                                  : QStringLiteral("Pass-through");
     return state;
 }
 
@@ -383,9 +388,12 @@ void annotateNode(SubstationLayout::NodeSpec *node, const PowerFlowCalculator::N
 
     node->parameters.insert(QStringLiteral("Calculated Voltage"), voltageText(state));
     node->parameters.insert(QStringLiteral("Calculated Current"), currentText(state));
-    node->parameters.insert(QStringLiteral("Energized"), state.energized ? QStringLiteral("Yes") : QStringLiteral("No"));
-    node->parameters.insert(QStringLiteral("Upstream"), state.upstreamId.isEmpty() ? QStringLiteral("-") : state.upstreamId);
-    node->parameters.insert(QStringLiteral("Flow Note"), state.note.isEmpty() ? QStringLiteral("-") : state.note);
+    node->parameters.insert(QStringLiteral("Energized"),
+                            state.energized ? QStringLiteral("Yes") : QStringLiteral("No"));
+    node->parameters.insert(QStringLiteral("Upstream"),
+                            state.upstreamId.isEmpty() ? QStringLiteral("-") : state.upstreamId);
+    node->parameters.insert(QStringLiteral("Flow Note"),
+                            state.note.isEmpty() ? QStringLiteral("-") : state.note);
 
     if (state.hasTemperature) {
         node->parameters.insert(QStringLiteral("Temperature"), temperatureText(state));

@@ -1,8 +1,8 @@
 #ifndef EQUIPMENT_H
 #define EQUIPMENT_H
 
-#include <QString>
 #include <QMap>
+#include <QString>
 #include <QVector>
 
 class Equipment

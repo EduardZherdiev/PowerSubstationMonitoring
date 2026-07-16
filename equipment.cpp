@@ -16,8 +16,7 @@ Equipment::Equipment(const QString &name,
     , m_description(description)
     , m_parameters(parameters)
     , m_parent(parent)
-{
-}
+{}
 
 Equipment::~Equipment()
 {

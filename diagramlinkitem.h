@@ -1,8 +1,8 @@
 #ifndef DIAGRAMLINKITEM_H
 #define DIAGRAMLINKITEM_H
 
-#include <QGraphicsLineItem>
 #include <QColor>
+#include <QGraphicsLineItem>
 #include <QLineF>
 #include <QString>
 
@@ -28,7 +28,9 @@ public:
     void refreshTheme();
     void setLine(const QLineF &line);
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
+    void paint(QPainter *painter,
+               const QStyleOptionGraphicsItem *option,
+               QWidget *widget = nullptr) override;
 
 private:
     QString m_sourceKey;

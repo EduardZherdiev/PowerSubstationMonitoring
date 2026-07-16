@@ -12,11 +12,7 @@ struct TelemetrySample
 
 namespace TelemetryHistory {
 
-enum class SeriesKind {
-    Voltage,
-    Current,
-    Temperature
-};
+enum class SeriesKind { Voltage, Current, Temperature };
 
 void appendSample(SeriesKind kind, const TelemetrySample &sample);
 QVector<TelemetrySample> series(SeriesKind kind, const QDateTime &endTime, int windowSeconds);
