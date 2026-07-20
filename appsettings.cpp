@@ -110,7 +110,14 @@ void applyTheme(QApplication& application, ThemeMode theme) {
             if (QLayout* layout = groupBox->layout()) {
                 layout->setContentsMargins(9, 9, 9, 9);
                 layout->setSpacing(6);
-                groupBox->setMinimumHeight(qMax(groupBox->minimumHeight(), layout->sizeHint().height() + 9));
+                int requiredHeight = layout->sizeHint().height() + 9;
+                if (groupBox->objectName() == QStringLiteral("languageGroupBox")) {
+                    groupBox->setFixedHeight(80);
+                    requiredHeight = 80;
+                } else if (groupBox->objectName() == QStringLiteral("groupBox")) {
+                    requiredHeight = qMax(requiredHeight, 90);
+                }
+                groupBox->setMinimumHeight(qMax(groupBox->minimumHeight(), requiredHeight));
             }
         }
         widget->update();

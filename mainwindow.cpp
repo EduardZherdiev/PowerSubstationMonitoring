@@ -305,6 +305,7 @@ void MainWindow::configureParameterPanel() {
     ui->periodComboBox->setFixedHeight(32);
     ui->breakerStateCombo->setFixedHeight(32);
     ui->dateEdit->setFixedHeight(32);
+    ui->groupBox->setMinimumHeight(90);
     ui->horizontalLayout_3->setAlignment(ui->period, Qt::AlignVCenter);
     ui->horizontalLayout_3->setAlignment(ui->periodComboBox, Qt::AlignVCenter);
     ui->horizontalLayout_3->setAlignment(ui->day, Qt::AlignVCenter);

@@ -37,6 +37,9 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     ui->lightTheme->setFixedHeight(28);
     ui->darkTheme->setFixedHeight(28);
     ui->languageComboBox->setFixedHeight(32);
+    ui->languageGroupBox->setFixedHeight(80);
+    setMinimumSize(316, 300);
+    resize(316, 300);
     ui->languageLayout->setAlignment(ui->languageComboBox, Qt::AlignVCenter);
     ui->pushButton_2->setEnabled(true);
 
